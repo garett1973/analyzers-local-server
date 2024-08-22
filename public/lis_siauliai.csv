@@ -1,0 +1,141 @@
+﻿test_id;sub_test_id;description;analyzer;name
+19044;;4 LPL šlapime paletė (Chlamydia trachomatis, Neisseria gonorrheae, Mycoplasma genitalium, Trichomonas vaginalis);;UAB Rezus.lt VILNIUS
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu;Mindray BC-6800;-
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Leukocitai (WBC) ;Mindray BC-6800;WBC
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Eritrocitai (RBC) ;Mindray BC-6800;RBC
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Hemoglobinas (HGB) ;Mindray BC-6800;HGB
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Hematokritas (HCT);Mindray BC-6800;HCT
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Eritrocitų vid.tūris (MCV);Mindray BC-6800;MCV
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Vidut.hemogl. kiekis erit. (MCH);Mindray BC-6800;MCH
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Hemogl. koncentrac. eritrocite (MCHC);Mindray BC-6800;MCHC
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Eritrocitų pasiskirstymo plotis (RDW-CV);Mindray BC-6800;RDW-CV
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Trombocitai (PLT);Mindray BC-6800;PLT
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Trombocitų pasiskirstymo plotis (PDW);Mindray BC-6800;PDW
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Vid.tromboc.tūris (MPV) ;Mindray BC-6800;MPV
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Trombocitų kritas (PCT) ;Mindray BC-6800;PCT
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Neutrofilai (NEUT%) ;Mindray BC-6800;NEUT%
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Limfocitai (LYMPH%) ;Mindray BC-6800;LYMPH%
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Monocitai (MONO%) ;Mindray BC-6800;MONO%
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Eozinofilai (EOS%) ;Mindray BC-6800;EOS%
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Bazofilai (BASO%) ;Mindray BC-6800;BASO%
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Neutrofilai (NEUT#);Mindray BC-6800;NEUT#
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Limfocitai (LYMPH#);Mindray BC-6800;LYMPH#
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Monocitai (MONO#);Mindray BC-6800;MONO#
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Eozinofilai (EOS#);Mindray BC-6800;EOS#
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Bazofilai (BASO#);Mindray BC-6800;BASO#
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Branduolėti eritrocitai (NRBC#);Mindray BC-6800;NRBC#
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Branduolėti eritrocitai (NRBC%);Mindray BC-6800;NRBC%
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Didelių trombocitų frakcija (P-LCR);Mindray BC-6800;P-LCR
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Nesubrendę granulocitai (IG#);Mindray BC-6800;IG#
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Nesubrendę granulocitai (IG%);Mindray BC-6800;IG%
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Eritrocitų pasiskirstymo plotis (RDW-SD);Mindray BC-6800;RDW-SD
+15080;;Aktyvinto dalinio tromboplastino laiko nustatymas (ADTL);Sysmex CS-2500;5232
+15061;;Alaninaminotransferazės (ALAT/GPT) aktyvumo nustatymas;Olympus AU680;1
+15009;;Albumino koncentracijos nustatymas;Olympus AU680;13
+15181;;Alfa fetoproteino (AFP) nustatymas;UniCel DxI 800;180
+15934;;Antikūnai prieš audinių transglutaminazę Anti-tTG IgA (dėl celiakinės ligos ištyrimo);Alegria;tTG-IgA
+15935;;Antikūnai prieš audinių transglutaminazę Anti-tTG IgG (dėl celiakinės ligos ištyrimo);Alegria;tTG-IgG
+18001;;Antikūnų prieš branduolio antigenus nustatymas (angl. ANA);Alegria;ANAscr
+18002;;Antikūnų prieš neutrofilų citoplazmos antigenus nustatymas (angl. ANCA);Alegria;ANCA-hs
+18010;;Antikūnų prieš skydliaukės peroksidazę (anti-TPO) nustatymas;UniCel DxI 800;165
+18011;;Antikūnų prieš tiroglobuliną (anti-Tg) nustatymas;Alegria;Anti-TG
+15114;;Apolipoproteino A1 (Apo A1) koncentracijos nustatymas;Olympus AU680;45
+15115;;Apolipoproteino B (Apo B) koncentracijos nustatymas;Olympus AU680;46
+15060;;Aspartataminotransferazės (ASAT/GOT) aktyvumo nustatymas;Olympus AU680;2
+15002;;Bendrojo baltymo (TP) koncentracijos nustatymas;Olympus AU680;15
+15028;;Bendrojo bilirubino (T-Bil) koncentracijos nustatymas;Olympus AU680;21/35
+15023;;Bendrojo cholesterolio koncentracijos nustatymas;Olympus AU680;16
+15033;;Bendrojo kalcio (Ca) koncentracijos nustatymas;Olympus AU680;11
+15961;;Beta- Žmogaus chorioninis gonadotropinas (beta-HCG), (kiaušidės germinalinių ląstelių CA, Mola hydatiforma ir choriokarcinoma, sėklidės germinalinių ląstelių CA);UniCel DxI 800;273
+15960;;BNP (natriuretinis peptidas);UniCel DxI 800;261
+17223;;Boreliozės (Laimo ligos) IgG antikūnų nustatymas imunofermentiniu metodu;Alegria;Borr-G
+17224;;Boreliozės (Laimo ligos) IgM antikūnų nustatymas imunofermentiniu metodu;Alegria;Borr-Mx
+18022;;C reaktyvaus baltymo (CRB) kiekybinis nustatymas;Olympus AU680;25
+18906;;C reaktyvaus baltymo (didelio jautrumo) kiekybinis nustatymas;Olympus AU680;50
+18900;;Ciklinio citrulizuoto peptido antikūnai (Anti CCP);Alegria;CCPhs
+17114;;Chlamydia pneumoniae IgG antikūnų nustatymas imunofermentiniu metodu;Alegria;Cpneu-G
+17113;;Chlamydia pneumoniae IgM antikūnų nustatymas imunofermentiniu metodu;Alegria;Cpneu-MX
+17901;;Chlamydia trachomatis IgG antikūnų nustatymas;Alegria;Ctrac-G
+17902;;Chlamydia trachomatis IgM antikūnų nustatymas;Alegria;Ctrac-MX
+15032;;Chloridų koncentracijos nustatymas;Olympus AU680;99
+15024;;Didelio tankio lipoproteinų (DTL) cholesterolio koncentracijos nustatymas;Olympus AU680;17
+17122;;Epštein-Baro IgG (EBV) viruso antikūnų nustatymas (infekcinė mononukleozė);Alegria;VCA-G
+17121;;Epštein-Baro IgM (EBV) viruso antikūnų nustatymas (infekcinė mononukleozė);Alegria;VCA-MX
+15194;;Feritino koncentracijos nustatymas;UniCel DxI 800;125
+15079;;Fibrinogeno koncentracijos nustatymas (apskaičiuojamas);Sysmex CS-2500;5014
+15191;;Folio rūgšties koncentracijos nustatymas;UniCel DxI 800;156
+15042;;Fosforo koncentracijos nustatymas;Olympus AU680;24
+15073;;Gama gliutamiltransferazės (GGT) aktyvumo nustatymas;Olympus AU680;5
+15040;;Geležies (Fe) koncentracijos nustatymas;Olympus AU680;14
+15014;;Glikozilinto hemoglobino (HbA1C) nustatymas;Premier HB9210;
+15982;;Gliukozės koncentracijos nustatymas po 1 valandos;Olympus AU680;20
+15912;;Gliukozės koncentracijos plazmoje nustatymas;Olympus AU680;20
+15012;;Gliukozės koncentracijos serume nustatymas;Olympus AU680;20
+15983;;Gliukozės toleravimo mėginys po 2 val. plazmoje;Olympus AU680;20
+15013;;Gliukozės toleravimo mėginys po 2 val. serume;Olympus AU680;20
+17099;;Helicobacter pylori IgA kiekybinis antikūnų nustatymas;Alegria;Hpylo-A
+17933;;Helicobacter pylori IgG kiekybinis antikūnų nustatymas;Alegria;Hpylo-G
+17148;;Hepatito B viruso (HBV) HBs Ag antigeno nustatymas imunofermentiniu metodu;UniCel DxI 800;223
+17892;;Hepatito C viruso (HCV) antikūnų nustatymas PROGRAMA;UniCel DxI 800, Hepatito C viruso (HCV) testas, Subrangovas;276
+17161;;Hepatito C viruso (HCV) IgG nustatymas imunofermentiniu metodu;UniCel DxI 800, Subrangovas;276
+17159;;Hepatito C viruso (HCV) kiekybinis antikūnų nustatymas;UniCel DxI 800, Subrangovas;276
+17101;;Yersinia spp. IgA (Y. enterocolitica, Y. pestis ir Y. pseudotuberculosis) antikūnų nustatymas;Alegria;Yers-A
+17102;;Yersinia spp. IgG (Y. enterocolitica, Y. pestis ir Y. pseudotuberculosis) antikūnų nustatymas;Alegria;Yers-G
+18013;;IgA klasės antikūnų prieš gliadiną nustatymas;Alegria;Glia-IgA
+18012;;IgG klasės antikūnų prieš gliadiną nustatymas;Alegria;Glia-IgG
+15034;;Jonizuoto kalcio (Ca++) koncentracijos apskaičiavimas;Olympus AU680;31
+15030;;Kalio koncentracijos nustatymas;Olympus AU680;98
+15991;;Kalis heparinizuota plazma (žalias mėgintuvėlis);Olympus AU680;98
+18990;;Kalprotektino kiekybinis nustatymas išmatose (Calprotectin);Alegria;Calpro
+15179;;Karcinoembrioninio antigeno nustatymas (CEA);UniCel DxI 800;240
+15019;;Kreatinino koncentracijos nustatymas;Olympus AU680;34
+15124;;Laisvo tiroksino (LT4/FT4) nustatymas imunofermentiniu metodu;UniCel DxI 800;226
+15130;;Laisvo trijodtironino (LT3/FT3) nustatymas imunofermentiniu metodu;UniCel DxI 800;212
+15963;;Lipidograma;Olympus AU680;-
+15963;;Lipidograma: Bendrojo cholesterolio koncentracijos nustatymas;Olympus AU680;4
+15963;;Lipidograma: Didelio tankio lipoproteinų cholesterolio koncentracijos nustatymas ;Olympus AU680;11
+15963;;Lipidograma: Mažo tankio lipoproteinų cholesterolio apskaičiavimas pagal Friedevaldo formulę ;Olympus AU680;5
+15963;;Lipidograma: Triacilglicerolių koncentracijos nustatymas ;Olympus AU680;12
+15963;;Lipidograma: Lipidų aterogeniškumo koeficientas apskaičiuojamas pagal formulę ;Olympus AU680;14
+15119;;Lipoproteino (a) (Lp (a)) koncentracijos nustatymas;Olympus AU680;91
+15043;;Magnio (Mg) koncentracijos nustatymas;Olympus AU680;12
+15025;;Mažo tankio lipoproteinų (MTL) cholesterolio apskaičiavimas pagal Friedevaldo formulę;Olympus AU680;18
+17107;;Mycoplasma pneumoniae IgG antikūnų nustatymas imunofermentiniu metodu;Alegria;Mpneu-G
+17105;;Mycoplasma pneumoniae IgM antikūnų nustatymas imunofermentiniu metodu;Alegria;Mpneu-MX
+15976;;MTL/LDL (mažo tankio) cholesterolis atliekamas analizatoriumi (matuojamas);Olympus AU680;95
+15031;;Natrio koncentracijos nustatymas;Olympus AU680;97
+15916;;Netiesioginio bilirubino (N-Bil) koncentracijos nustatymas;Olympus AU680;33
+15075;;Pankreatinės amilazės aktyvumo nustatymas;Olympus AU680;30
+15141;;Progesterono nustatymas imunofermentiniu metodu;UniCel DxI 800;114
+15185;;Prostatos specifinio antigeno (PSA) nustatymas;UniCel DxI 800;170
+15077;;Protrombino aktyvumo nustatymas pagal Kviką (PT/INR);Sysmex CS-2500;5014
+15077;;Protrombino aktyvumo nustatymas pagal Kviką (PT/INR): Protrombino aktyvumo nustatymas pagal Kviką PT % ;Sysmex CS-2500;PT%
+15077;;Protrombino aktyvumo nustatymas pagal Kviką (PT/INR): Protrombino aktyvumo nustatymas pagal Kviką PT s ;Sysmex CS-2500;PT
+15077;;Protrombino aktyvumo nustatymas pagal Kviką (PT/INR): INR ;Sysmex CS-2500;PT INR
+15062;;Šarminės fosfatazės aktyvumo (ALP) nustatymas;Olympus AU680;3
+15021;;Šlapalo (Urea) koncentracijos nustatymas;Olympus AU680;22
+15018;;Šlapimo rūgšties (UA) koncentracijos nustatymas;Olympus AU680;23
+16048;;Šlapimo tyrimas automatizuotu būdu;BioMaxima;-
+16048;;Šlapimo tyrimas automatizuotu būdu: Reakcija (pH) (šlapimo tyrimas) ;BioMaxima;pH
+16048;;Šlapimo tyrimas automatizuotu būdu: Leukocitai (LEU) (šlapimo tyrimas) ;BioMaxima;LEU
+16048;;Šlapimo tyrimas automatizuotu būdu: Bakterijos (NIT) (šlapimo tyrimas) ;BioMaxima;NIT
+16048;;Šlapimo tyrimas automatizuotu būdu: Baltymas (PRO) (šlapimo tyrimas) ;BioMaxima;PRO
+16048;;Šlapimo tyrimas automatizuotu būdu: Gliukozė (GLU) (šlapimo tyrimas) ;BioMaxima;GLU
+16048;;Šlapimo tyrimas automatizuotu būdu: Ketonai (KET) (šlapimo tyrimas) ;BioMaxima;KET
+16048;;Šlapimo tyrimas automatizuotu būdu: Urobilinogenas (UBG) (šlapimo tyrimas) ;BioMaxima;UBG
+16048;;Šlapimo tyrimas automatizuotu būdu: Tulžies pigmentas (BIL) (šlapimo tyrimas) ;BioMaxima;BIL
+16048;;Šlapimo tyrimas automatizuotu būdu: Eritrocitai (ERY) (šlapimo tyrimas) ;BioMaxima;BLD
+16048;;Šlapimo tyrimas automatizuotu būdu: A : K santykis (A:C) (šlapimo tyrimas) ;BioMaxima;A:C
+16048;;Šlapimo tyrimas automatizuotu būdu: Kreatininas (CRE) (šlapimo tyrimas) ;BioMaxima;CRE
+16048;;Šlapimo tyrimas automatizuotu būdu: Lyg.tankis (SG) (šlapimo tyrimas) ;BioMaxima;SG
+15029;;Tiesioginio bilirubino (D-Bil) koncentracijos nustatymas;Olympus AU680;07-rugs
+15924;;Tymų virusas IgG;Alegria;Measl-G
+15126;;Tirotropino (TSH/TTH) nustatymas imunofermentiniu metodu;UniCel DxI 800;277
+15026;;Triacilglicerolių koncentracijos nustatymas;Olympus AU680;19
+17143;;Varicella zoster viruso (VZV) IgG nustatymas;Alegria;VZV-G
+15184;;Vėžio žymens Ca 125 nustatymas;UniCel DxI 800;175
+15182;;Vėžio žymens Ca 15-3 nustatymas;UniCel DxI 800;193
+15183;;Vėžio žymens Ca 19-9 nustatymas;UniCel DxI 800;159
+15193;;Vitamino B12 koncentracijos nustatymas;UniCel DxI 800;190
+15177;;Vitamino D  koncentracijos nustatymas (25-hidroksivitaminas D);UniCel DxI 800;271
+17169;;Žmogaus imunodeficito viruso 1/2 (ŽIV 1/2) antikūnų ir p24 Ag (įskaitant grupę 0) nustatymas/ HIV Antibody and HIV Antigen (p24) test;UniCel DxI 800;262

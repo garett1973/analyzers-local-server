@@ -1,0 +1,54 @@
+﻿test_id;sub_test_id;description;analyzer;name
+15012;;Gliukozės koncentracijos serume nustatymas;Konelab 20i;GLUC HK2
+15013;;Gliukozės toleravimo mėginys po 2 val. serume;Konelab 20i;GLUC HK2
+15019;;Kreatinino koncentracijos nustatymas;Konelab 20i, skyla ER Panel II L;CREA_Enz
+15021;;Šlapalo (Urea) koncentracijos nustatymas;Konelab 20i, skyla ER Panel II L;UREA
+15028;;Bendrojo bilirubino (T-Bil) koncentracijos nustatymas;Konelab 20i, skyla ER Panel II L;T_BIL_NBD2
+15029;;Tiesioginio bilirubino (D-Bil) koncentracijos nustatymas;Konelab 20i;D BIL
+15030;;Kalio koncentracijos nustatymas;Konelab 20i;ISE.K
+15031;;Natrio koncentracijos nustatymas;Konelab 20i;ISE.Na
+15040;;Geležies (Fe) koncentracijos nustatymas;Konelab 20i;IRON2
+15060;;Aspartataminotransferazės (ASAT/GOT) aktyvumo nustatymas;Konelab 20i, skyla ER Panel II L;AST
+15061;;Alaninaminotransferazės (ALAT/GPT) aktyvumo nustatymas;Konelab 20i, skyla ER Panel II L;ALT
+15062;;Šarminės fosfatazės aktyvumo (ALP) nustatymas;Konelab 20i;ALP_PLUS
+15073;;Gama gliutamiltransferazės (GGT) aktyvumo nustatymas;Konelab 20i, skyla ER Panel II L;GGT
+15074;;Alfa amilazės aktyvumo nustatymas;Konelab 20i, skyla ER Panel II L;AMYL_IFCC
+15077;;Protrombino aktyvumo nustatymas pagal Kviką (PT/INR);Sysmex CA-600;-
+15077;;Protrombino aktyvumo nustatymas pagal Kviką (PT/INR): Protrombino aktyvumo nustatymas pagal Kviką PT % ;Sysmex CA-600;PT%
+15077;;Protrombino aktyvumo nustatymas pagal Kviką (PT/INR): Protrombino aktyvumo nustatymas pagal Kviką PT s ;Sysmex CA-600;PT
+15077;;Protrombino aktyvumo nustatymas pagal Kviką (PT/INR): INR ;Sysmex CA-600;PT INR
+15079;;Fibrinogeno koncentracijos nustatymas (apskaičiuojamas);Sysmex CA-600;dFbg
+15080;;Aktyvinto dalinio tromboplastino laiko nustatymas (ADTL);Sysmex CA-600, Micropoint;APTT
+15912;;Gliukozės koncentracijos plazmoje nustatymas;Konelab 20i, skyla ER Panel II L;GLUC HK2
+15982;;Gliukozės koncentracijos nustatymas po 1 valandos;Konelab 20i;GLUC HK2
+15983;;Gliukozės toleravimo mėginys po 2 val. plazmoje;Konelab 20i;GLUC HK2
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu;Mindray BC-5000;-
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Leukocitai (WBC) ;Mindray BC-5000;WBC
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Eritrocitai (RBC) ;Mindray BC-5000;RBC
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Hemoglobinas (HGB) ;Mindray BC-5000;HGB
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Hematokritas (HCT);Mindray BC-5000;HCT
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Eritrocitų vid.tūris (MCV);Mindray BC-5000;MCV
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Vidut.hemogl. kiekis erit. (MCH);Mindray BC-5000;MCH
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Hemogl. koncentrac. eritrocite (MCHC);Mindray BC-5000;MCHC
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Eritrocitų pasiskirstymo plotis (RDW-CV);Mindray BC-5000;RDW-CV
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Trombocitai (PLT);Mindray BC-5000;PLT
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Trombocitų pasiskirstymo plotis (PDW);Mindray BC-5000;PDW
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Vid.tromboc.tūris (MPV) ;Mindray BC-5000;MPV
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Trombocitų kritas (PCT) ;Mindray BC-5000;PCT
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Neutrofilai (NEUT%) ;Mindray BC-5000;NEUT%
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Limfocitai (LYMPH%) ;Mindray BC-5000;LYMPH%
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Monocitai (MONO%) ;Mindray BC-5000;MONO%
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Eozinofilai (EOS%) ;Mindray BC-5000;EOS%
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Bazofilai (BASO%) ;Mindray BC-5000;BASO%
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Neutrofilai (NEUT#);Mindray BC-5000;NEUT#
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Limfocitai (LYMPH#);Mindray BC-5000;LYMPH#
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Monocitai (MONO#);Mindray BC-5000;MONO#
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Eozinofilai (EOS#);Mindray BC-5000;EOS#
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Bazofilai (BASO#);Mindray BC-5000;BASO#
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Branduolėti eritrocitai (NRBC#);Mindray BC-5000;NRBC#
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Branduolėti eritrocitai (NRBC%);Mindray BC-5000;NRBC%
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Didelių trombocitų frakcija (P-LCR);Mindray BC-5000;P-LCR
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Nesubrendę granulocitai (IG#);Mindray BC-5000;IG#
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Nesubrendę granulocitai (IG%);Mindray BC-5000;IG%
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Eritrocitų pasiskirstymo plotis (RDW-SD);Mindray BC-5000;RDW-SD
+18022;;C reaktyvaus baltymo (CRB) kiekybinis nustatymas;Konelab 20i, skyla ER Panel II L;CRP

@@ -1,0 +1,58 @@
+﻿test_id;sub_test_id;description;analyzer;name
+15012;;Gliukozės koncentracijos serume nustatymas;Konelab 20i;GLUC GOD
+15013;;Gliukozės toleravimo mėginys po 2 val. serume;Konelab 20i;GLUC GOD
+15019;;Kreatinino koncentracijos nustatymas;Konelab 20i;CREA Enz
+15030;;Kalio koncentracijos nustatymas;Konelab 20i;K
+15031;;Natrio koncentracijos nustatymas;Konelab 20i;Na
+15077;;Protrombino aktyvumo nustatymas pagal Kviką (PT/INR);Sysmex CA-600;
+15077;;Protrombino aktyvumo nustatymas pagal Kviką (PT/INR): Protrombino aktyvumo nustatymas pagal Kviką PT % ;Sysmex CA-600;PT%
+15077;;Protrombino aktyvumo nustatymas pagal Kviką (PT/INR): Protrombino aktyvumo nustatymas pagal Kviką PT s ;Sysmex CA-600;PT
+15077;;Protrombino aktyvumo nustatymas pagal Kviką (PT/INR): INR ;Sysmex CA-600;PT INR
+15079;;Fibrinogeno koncentracijos nustatymas (apskaičiuojamas);Sysmex CA-600;dFbg
+15080;;Aktyvinto dalinio tromboplastino laiko nustatymas (ADTL);Sysmex CA-600;APTT
+15912;;Gliukozės koncentracijos plazmoje nustatymas;Konelab 20i;GLUC GOD
+15982;;Gliukozės koncentracijos nustatymas po 1 valandos;Konelab 20i;GLUC GOD
+15983;;Gliukozės toleravimo mėginys po 2 val. plazmoje;Konelab 20i;GLUC GOD
+15991;;Kalis heparinizuota plazma (žalias mėgintuvėlis);Konelab 20i;K
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu;Mindray BC-6000, Celltac NIHON KOHDEN;
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Leukocitai (WBC) ;Mindray BC-6000, Celltac NIHON KOHDEN;WBC
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Eritrocitai (RBC) ;Mindray BC-6000, Celltac NIHON KOHDEN;RBC
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Hemoglobinas (HGB) ;Mindray BC-6000, Celltac NIHON KOHDEN;HGB
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Hematokritas (HCT);Mindray BC-6000, Celltac NIHON KOHDEN;HCT
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Eritrocitų vid.tūris (MCV);Mindray BC-6000, Celltac NIHON KOHDEN;MCV
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Vidut.hemogl. kiekis erit. (MCH);Mindray BC-6000, Celltac NIHON KOHDEN;MCH
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Hemogl. koncentrac. eritrocite (MCHC);Mindray BC-6000, Celltac NIHON KOHDEN;MCHC
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Eritrocitų pasiskirstymo plotis (RDW-CV);Mindray BC-6000, Celltac NIHON KOHDEN;RDW-CV
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Trombocitai (PLT);Mindray BC-6000, Celltac NIHON KOHDEN;PLT
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Trombocitų pasiskirstymo plotis (PDW);Mindray BC-6000, Celltac NIHON KOHDEN;PDW
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Vid.tromboc.tūris (MPV) ;Mindray BC-6000, Celltac NIHON KOHDEN;MPV
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Trombocitų kritas (PCT) ;Mindray BC-6000, Celltac NIHON KOHDEN;PCT
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Neutrofilai (NEUT%) ;Mindray BC-6000, Celltac NIHON KOHDEN;NEUT%
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Limfocitai (LYMPH%) ;Mindray BC-6000, Celltac NIHON KOHDEN;LYMPH%
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Monocitai (MONO%) ;Mindray BC-6000, Celltac NIHON KOHDEN;MONO%
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Eozinofilai (EOS%) ;Mindray BC-6000, Celltac NIHON KOHDEN;EOS%
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Bazofilai (BASO%) ;Mindray BC-6000, Celltac NIHON KOHDEN;BASO%
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Neutrofilai (NEUT#);Mindray BC-6000, Celltac NIHON KOHDEN;NEUT#
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Limfocitai (LYMPH#);Mindray BC-6000, Celltac NIHON KOHDEN;LYMPH#
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Monocitai (MONO#);Mindray BC-6000, Celltac NIHON KOHDEN;MONO#
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Eozinofilai (EOS#);Mindray BC-6000, Celltac NIHON KOHDEN;EOS#
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Bazofilai (BASO#);Mindray BC-6000, Celltac NIHON KOHDEN;BASO#
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Branduolėti eritrocitai (NRBC#);Mindray BC-6000, Celltac NIHON KOHDEN;NRBC#
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Branduolėti eritrocitai (NRBC%);Mindray BC-6000, Celltac NIHON KOHDEN;NRBC%
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Didelių trombocitų frakcija (P-LCR);Mindray BC-6000, Celltac NIHON KOHDEN;P-LCR
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Nesubrendę granulocitai (IG#);Mindray BC-6000, Celltac NIHON KOHDEN;IG#
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Nesubrendę granulocitai (IG%);Mindray BC-6000, Celltac NIHON KOHDEN;IG%
+16004;;5DIF bendras kraujo tyrimas (BKT) automatizuotu būdu: Eritrocitų pasiskirstymo plotis (RDW-SD);Mindray BC-6000, Celltac NIHON KOHDEN;RDW-SD
+16048;;Šlapimo tyrimas automatizuotu būdu;Biomaxima;
+16048;;Šlapimo tyrimas automatizuotu būdu: Reakcija (pH) (šlapimo tyrimas) ;Biomaxima;pH
+16048;;Šlapimo tyrimas automatizuotu būdu: Leukocitai (LEU) (šlapimo tyrimas) ;Biomaxima;LEU
+16048;;Šlapimo tyrimas automatizuotu būdu: Bakterijos (NIT) (šlapimo tyrimas) ;Biomaxima;NIT
+16048;;Šlapimo tyrimas automatizuotu būdu: Baltymas (PRO) (šlapimo tyrimas) ;Biomaxima;PRO
+16048;;Šlapimo tyrimas automatizuotu būdu: Gliukozė (GLU) (šlapimo tyrimas) ;Biomaxima;GLU
+16048;;Šlapimo tyrimas automatizuotu būdu: Ketonai (KET) (šlapimo tyrimas) ;Biomaxima;KET
+16048;;Šlapimo tyrimas automatizuotu būdu: Urobilinogenas (UBG) (šlapimo tyrimas) ;Biomaxima;UBG
+16048;;Šlapimo tyrimas automatizuotu būdu: Tulžies pigmentas (BIL) (šlapimo tyrimas) ;Biomaxima;BIL
+16048;;Šlapimo tyrimas automatizuotu būdu: Eritrocitai (ERY) (šlapimo tyrimas) ;Biomaxima;BLD
+16048;;Šlapimo tyrimas automatizuotu būdu: A : K santykis (A:C) (šlapimo tyrimas) ;Biomaxima;A:C
+16048;;Šlapimo tyrimas automatizuotu būdu: Kreatininas (CRE) (šlapimo tyrimas) ;Biomaxima;CRE
+16048;;Šlapimo tyrimas automatizuotu būdu: Lyg.tankis (SG) (šlapimo tyrimas) ;Biomaxima;SG

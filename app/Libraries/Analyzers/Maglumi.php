@@ -41,7 +41,6 @@ class Maglumi
                     if ($inc == $enq) {
                         $resp = $ack;
                         socket_write($socket, $resp, strlen($resp));
-                        $inc = socket_read($socket, 1024);
                     } else {
                         $idle = false;
                     }

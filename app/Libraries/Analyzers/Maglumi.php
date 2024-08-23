@@ -5,23 +5,59 @@ namespace App\Libraries\Analyzers;
 use App\Enums\HexCodes;
 use App\Models\Analyzer;
 use App\Models\Order;
+use App\Services\SocketManager;
 
 class Maglumi
 {
-    // create a string parameter short header
+    protected SocketManager $socketManager;
+
+    public function __construct(SocketManager $socketManager)
+    {
+        $this->socketManager = $socketManager;
+    }
+
+    public function shortHeader(): string
+    {
+        return 'H|\^&';
+    }
+
+    public function patientRecord(): string
+    {
+        return 'P|1';
+    }
+
+    public function terminator(): string
+    {
+        return 'L|1|N';
+    }
+
     public function processOrder(mixed $order): false|string|null
     {
-        $ip = Analyzer::where('analyzer_id', $order['analyzer_id'])
+//        $ip = Analyzer::where('analyzer_id', $order['analyzer_id'])
+//            ->where('lab_id', $order['lab_id'])
+//            ->first()
+//            ->local_ip;
+//
+//        $port = 12000;
+//
+        $analyzer_name = Analyzer::where('analyzer_id', $order['analyzer_id'])
             ->where('lab_id', $order['lab_id'])
             ->first()
-            ->local_ip;
+            ->name;
 
-        $port = 12000;
 
         $socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
-        $connection = socket_connect($socket, $ip, $port);
+//        $connection = socket_connect($socket, $ip, $port);
+
+        $connections = $this->socketManager->getAllConnections();
+        $connection = $connections[$analyzer_name];
+
+
+//        $status = socket_get_status($socket);
+//        $connection = $status['eof'] == 0 && $status['timed_out'] == 0;
 
         $ack = HexCodes::ACK->value;
+        $nak = HexCodes::NAK->value;
         $enq = HexCodes::ENQ->value;
         $stx = HexCodes::STX->value;
         $etx = HexCodes::ETX->value;
@@ -34,7 +70,6 @@ class Maglumi
             $idle = true;
             $order_request = false;
             $received = false;
-            $responded = true;
             while (true) {
                 while ($idle) {
                     $inc = socket_read($socket, 1024);
@@ -50,11 +85,13 @@ class Maglumi
                     $resp = $ack;
                     socket_write($socket, $resp, strlen($resp));
                     $inc = socket_read($socket, 1024);
-                } else {
-                    $checksum = substr($inc, -2);
+                }
+
+                if (!in_array($inc, [$ack, $enq, $etx, $eot, $stx])) {
                     $inc = substr($inc, 0, -2);
                     $inc = hex2bin($inc);
                     $op_h = explode('|', $inc)[0];
+
                     if ($op_h == 'H') {
                         $resp = $ack;
                         socket_write($socket, $resp, strlen($resp));
@@ -64,9 +101,13 @@ class Maglumi
                     if ($op_h == 'Q') {
                         $order_request = true;
                         $barcode = explode('|', $inc)[2];
+                        $barcode = preg_replace('/[^0-9]/', '', $barcode);
                         $order_string = $this->getOrderString($barcode);
-                        $result = $barcode;
-                        $resp = $ack;
+                        if ($order_string) {
+                            $resp = $ack;
+                        } else {
+                            $resp = $nak;
+                        }
                         socket_write($socket, $resp, strlen($resp));
                         $inc = socket_read($socket, 1024);
                     }
@@ -76,17 +117,16 @@ class Maglumi
                         socket_write($socket, $resp, strlen($resp));
                         $inc = socket_read($socket, 1024);
                     }
+                }
 
-                    if ($inc == $etx) {
-                        $resp = $ack;
-                        socket_write($socket, $resp, strlen($resp));
-                    }
+                if ($inc == $etx) {
+                    $resp = $ack;
+                    socket_write($socket, $resp, strlen($resp));
+                    $inc = socket_read($socket, 1024);
+                }
 
-                    if ($inc == $eot) {
-                        $received = true;
-                        $responded = false;
-                        $idle = true;
-                    }
+                if ($inc == $eot) {
+                    $received = true;
                 }
 
                 if ($received && $order_request && $order_string) {
@@ -122,6 +162,7 @@ class Maglumi
                                 $resp = socket_read($socket, 1024);
 
                                 if ($resp == $ack) {
+                                    $order_string = bin2hex($order_string);
                                     $checksum = 0;
                                     for ($i = 0; $i < strlen($order_string); $i++) {
                                         $checksum += ord($order_string[$i]);
@@ -154,7 +195,7 @@ class Maglumi
                                                 $order_request = false;
                                                 $received = false;
                                                 $order_string = null;
-                                                $responded = true;
+                                                $idle = true;
                                             }
                                         }
                                     }
@@ -162,9 +203,6 @@ class Maglumi
                             }
                         }
                     }
-                } else {
-                    $result = 'Order not found';
-                    break;
                 }
             }
         }
@@ -172,36 +210,15 @@ class Maglumi
         return $result;
     }
 
-    // create a string parameter patient record
-
-    private function getOrderString(string $barcode)
+    private function getOrderString(string $barcode): ?string
     {
-        $order = Order::where('test_barcode', $barcode)->first()->order_record;
-
+        $order = Order::where('order_barcode', $barcode)->first();
         if (!$order) {
-            $order = Order::where('order_barcode', $barcode)->first()->order_record;
+           $order = Order::where('test_barcode', $barcode)->first();
         }
 
-        return $order;
+        return $order->order_record ?? null;
     }
-
-    // create a string parameter terminator
-
-    public function shortHeader(): string
-    {
-        return 'H|\^&';
-    }
-
-    public function patientRecord(): string
-    {
-        return 'P|1';
-    }
-
-    public function terminator(): string
-    {
-        return 'L|1|N';
-    }
-
 //    public function processOrder_notWorking($order)
 //    {
 //        $ip = Analyzer::where('analyzer_id', $order['analyzer_id'])

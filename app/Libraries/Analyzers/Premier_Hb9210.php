@@ -4,7 +4,7 @@ namespace App\Libraries\Analyzers;
 
 use App\Enums\HexCodes;
 
-class Premier
+class Premier_Hb9210
 {
     const ACK = HexCodes::ACK->value;
     const NAK = HexCodes::NAK->value;
@@ -16,7 +16,7 @@ class Premier
     const LF = HexCodes::LF->value;
     const TERMINATOR = self::CR . self::LF;
 
-    private static ?Premier $instance = null;
+    private static ?Premier_Hb9210 $instance = null;
     private $socket;
     private $connection;
 
@@ -28,10 +28,10 @@ class Premier
         }
     }
 
-    public static function getInstance(): Premier
+    public static function getInstance(): Premier_Hb9210
     {
         if (self::$instance == null) {
-            self::$instance = new Premier();
+            self::$instance = new Premier_Hb9210();
         }
 
         return self::$instance;
@@ -40,7 +40,7 @@ class Premier
     public function connect(): bool
     {
         $ip = '127.0.0.1';
-        $port = 9999;
+        $port = 12000;
 
         $this->connection = @socket_connect($this->socket, $ip, $port);
         if ($this->connection === false) {
@@ -103,63 +103,43 @@ class Premier
         echo "EOT received\n";
     }
 
-    private function getDataMessageHeader($inc): false|string
-    {
-        echo "Data message received: $inc\n";
-        echo "Data message hex2bin: " . hex2bin($inc) . "\n";
-        // remove CR from message end
-        $inc = substr($inc, 0, -1);
-        $inc = hex2bin($inc);
-        return explode('|', $inc)[0];
-    }
-
-    private function handleHeader(string $inc): void
-    {
-        // remove CR from message end
-        $inc = substr($inc, 0, -1);
-        $inc = hex2bin($inc);
-        echo "Header received: $inc\n";
-        $this->sendACK();
-    }
-
     private function sendACK(): void
     {
         socket_write($this->socket, self::ACK, strlen(self::ACK));
         echo "ACK sent\n";
     }
 
+    private function getDataMessageHeader($inc): false|string
+    {
+        return explode('|', $inc)[0];
+    }
+
+    private function handleHeader(string $inc): void
+    {
+        echo "Header received: $inc\n";
+        $this->sendACK();
+    }
+
     private function handlePatient(string $inc): void
     {
-        // remove CR from message end
-        $inc = substr($inc, 0, -1);
-        $inc = hex2bin($inc);
         echo "Patient data received: $inc\n";
         $this->sendACK();
     }
 
     private function handleOrder(string $inc): void
     {
-        // remove CR from message end
-        $inc = substr($inc, 0, -1);
-        $inc = hex2bin($inc);
         echo "Order data received: $inc\n";
         $this->sendACK();
     }
 
     private function handleResult(string $inc): void
     {
-        // remove CR from message end
-        $inc = substr($inc, 0, -1);
-        $inc = hex2bin($inc);
         echo "Result received: $inc\n";
         $this->sendACK();
     }
 
     private function handleTerminator(string $inc): void
     {
-        // remove CR from message end
-        $inc = substr($inc, 0, -1);
-        $inc = hex2bin($inc);
         echo "Terminator received: $inc\n";
         $this->sendACK();
     }

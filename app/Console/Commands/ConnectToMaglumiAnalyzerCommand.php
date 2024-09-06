@@ -3,11 +3,10 @@
 namespace App\Console\Commands;
 
 use App\Libraries\Analyzers\Maglumi;
-use parallel\Runtime;
 use Exception;
 use Illuminate\Console\Command;
 
-class OpenSocketConnectionsCommand extends Command
+class ConnectToMaglumiAnalyzerCommand extends Command
 {
 
     public function __construct()
@@ -20,14 +19,14 @@ class OpenSocketConnectionsCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'sockets:connect';
+    protected $signature = 'maglumi:connect';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Connects to all the available analyzers';
+    protected $description = 'Connects to Maglumi analyzer and processes the data';
 
     /**
      * Execute the console command.
@@ -51,24 +50,6 @@ class OpenSocketConnectionsCommand extends Command
         if ($connection) {
             $this->info('Connected to Maglumi');
             $maglumi->process();
-//            $runtime = new Runtime();
-//            $future = $runtime->run(function() {
-//                require_once __DIR__ . '/../../../vendor/autoload.php'; // Adjust the path as needed
-//                $maglumi = Maglumi::getInstance();
-//                $maglumi->connect();
-//                echo "Child process: Connected to Maglumi\n";
-//                $maglumi->process();
-//                echo "Child process: Finished processing\n";
-//            });
-//
-//            // Parent process
-//            sleep(10);
-//            $maglumi->setReceiving(false);
-//            echo "Parent process: Set receiving to false\n";
-//
-//            // Wait for the child process to complete
-//            $future->value();
-//            echo "Parent process: Child process completed\n";
         }
 
     }

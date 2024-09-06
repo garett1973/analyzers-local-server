@@ -17,4 +17,5 @@ enum HexCodes: string
     case RD = "\x5Ch";
     case caret = "\x5Eh";
     case ampersand = "\x26h";
+    case ETB = "\x17";
 }

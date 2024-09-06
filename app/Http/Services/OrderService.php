@@ -4,7 +4,9 @@ namespace App\Http\Services;
 
 use App\Http\Repositories\Interfaces\OrderRepositoryInterface;
 use App\Http\Services\Interfaces\OrderServiceInterface;
+use App\Libraries\Analyzers\Maglumi;
 use App\Models\Analyzer;
+use App\Models\AnalyzerType;
 use App\Models\Order;
 
 class OrderService implements OrderServiceInterface
@@ -30,20 +32,12 @@ class OrderService implements OrderServiceInterface
             ->get();
 
         foreach ($unprocessed_orders as $order) {
-            $this->processOrder($order);
+            // todo: process order
         }
     }
 
-    public function processOrder(mixed $order)
+    public function processOrder($order_data): string
     {
-        $analyzer = $this->orderRepository->getAnalyzer($order);
-        $analyzer_type = $this->orderRepository->getAnalyzerType($analyzer);
-        $analyzer_model = 'App\\Libraries\\Analyzers\\' . $analyzer_type->name;
-
-        $result = null;
-        $processor = new $analyzer_model();
-        $result = $processor->processOrder($order);
-
-        return $result;
+        return 'Order sent to analyzer';
     }
 }

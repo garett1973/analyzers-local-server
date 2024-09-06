@@ -1,10 +1,5 @@
 <?php
 
-use App\Providers\SocketServiceProvider;
-use Illuminate\Broadcasting\BroadcastServiceProvider;
-use Illuminate\Filesystem\FilesystemServiceProvider;
-use Laravel\Sanctum\SanctumServiceProvider;
-
 return [
 
     /*
@@ -127,9 +122,4 @@ return [
         'driver' => env('APP_MAINTENANCE_DRIVER', 'file'),
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
-
-//    'providers' => [
-//        // Other service providers
-//        App\Providers\SocketServiceProvider::class,
-//    ],
 ];

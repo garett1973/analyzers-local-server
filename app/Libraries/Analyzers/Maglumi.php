@@ -4,16 +4,212 @@ namespace App\Libraries\Analyzers;
 
 use App\Enums\HexCodes;
 use App\Models\Analyzer;
+use App\Models\AnalyzerType;
 use App\Models\Order;
-use App\Services\SocketManager;
 
 class Maglumi
 {
-    protected SocketManager $socketManager;
+    const ACK = HexCodes::ACK->value;
+    const NAK = HexCodes::NAK->value;
+    const ENQ = HexCodes::ENQ->value;
+    const STX = HexCodes::STX->value;
+    const ETX = HexCodes::ETX->value;
+    const EOT = HexCodes::EOT->value;
+    const CR = HexCodes::CR->value;
 
-    public function __construct(SocketManager $socketManager)
+    const BAUD_RATE = 9600;
+    const DATA_BITS = 8;
+    const STOP_BITS = 1;
+    const PARITY = 0;
+
+    private static ?Maglumi $instance = null;
+    private $socket;
+    private $connection;
+    private bool $receiving = true;
+    private bool $order_requested = false;
+    private bool $order_found = false;
+    private string $order_string = '';
+
+    public function __construct()
     {
-        $this->socketManager = $socketManager;
+        $this->socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
+        if ($this->socket === false) {
+            echo "Socket creation failed: " . socket_strerror(socket_last_error()) . "\n";
+        }
+    }
+
+    public static function getInstance(): Maglumi
+    {
+        if (self::$instance == null) {
+            self::$instance = new Maglumi();
+        }
+
+        return self::$instance;
+    }
+
+    public function connect(): bool
+    {
+        $analyzer_type_id = AnalyzerType::where('name', 'Maglumi')->first()->id;
+        $ip = Analyzer::where('type_id', $analyzer_type_id)
+            ->where('lab_id', config('laboratories.lab_id'))
+            ->where('is_active', true)
+            ->first()
+            ->local_ip;
+
+        $port = 12000;
+//        $ip = '10.150.9.64';
+//        $port = 53266;
+
+
+//        $ip = '0.tcp.eu.ngrok.io';
+//        $port = '10820';
+
+        $context  = stream_context_create([
+            'serial' => [
+                'baud_rate' => self::BAUD_RATE,
+                'data_bits' => self::DATA_BITS,
+                'stop_bits' => self::STOP_BITS,
+                'parity' => self::PARITY,
+            ],
+        ]);
+
+//        $this->connection = stream_socket_client("tcp://$ip:$port", $errno, $errstr, 30, STREAM_CLIENT_CONNECT, $context);
+
+        $this->connection = @socket_connect($this->socket, $ip, $port);
+        if ($this->connection === false) {
+            echo "Socket connection failed: " . socket_strerror(socket_last_error($this->socket)) . "\n";
+        }
+
+        return $this->connection;
+    }
+
+    public function getConnection()
+    {
+        return $this->connection;
+    }
+
+    public function process($order = null): void
+    {
+        if ($this->connection) {
+            echo "Connection established\n";
+            while (true) {
+                echo "Receiving: $this->receiving\n";
+                while ($this->receiving) {
+                    $inc = socket_read($this->socket, 1024);
+                    if ($inc) {
+                        switch ($inc) {
+                            case self::ENQ:
+                                $this->handleEnq($this->socket);
+                                break;
+                            case self::STX:
+                                $this->handleStx();
+                                break;
+                            case self::ETX:
+                                $this->handleEtx($this->socket);
+                                break;
+                            case self::EOT:
+                                $this->receiving = $this->handleEot();
+                                break;
+                            default:
+                                $header = $this->handleDataMessage($inc);
+                                switch ($header) {
+                                    case 'H':
+                                        $this->handleHeader($inc);
+                                        break;
+                                    case 'P':
+                                        $this->handlePatient($inc);
+                                        break;
+                                    case 'O':
+                                        $this->handleOrder($inc);
+                                        break;
+                                    case 'Q':
+                                        $this->handleOrderRequest($inc);
+                                        break;
+                                    case 'R':
+                                        $this->handleResult($inc);
+                                        break;
+                                    case 'C':
+                                        $this->handleComment($inc);
+                                        break;
+                                    case 'L':
+                                        $this->handleTerminator($inc);
+                                        break;
+                                }
+                        }
+                    }
+                }
+                echo "Receiving stopped, order was requested\n";
+                if ($this->order_requested && !$this->order_found) {
+                    $this->handleOrderNotFound();
+                } else {
+                    sleep(1);
+                    $this->sendENQ($this->socket);
+                    $inc = socket_read($this->socket, 1024);
+                    if ($inc == self::ACK) {
+                        sleep(1);
+                        $this->sendSTX($this->socket);
+                    } else if ($inc == self::NAK) {
+                        echo "NAK received\n";
+                        $this->resetSendingOrder();
+                        continue;
+                    } else if ($inc == self::ENQ) {
+                        echo "ENQ received\n";
+                        $this->resetSendingOrder();
+                        continue;
+                    }
+                    $this->handleSendOrderInformation();
+                }
+            }
+        }
+    }
+
+    private function handleEnq($socket): void
+    {
+        echo "ENQ received\n";
+        sleep(1);
+        socket_write($socket, self::ACK, strlen(self::ACK));
+        echo "ACK sent\n";
+    }
+
+    private function handleStx(): void
+    {
+        echo "STX received\n";
+//        socket_write($socket, self::ACK, strlen(self::ACK));
+    }
+
+    private function handleEtx($socket): void
+    {
+        echo "ETX received\n";
+        sleep(1);
+        socket_write($socket, self::ACK, strlen(self::ACK));
+        echo "ACK sent\n";
+    }
+
+    private function handleEot(): bool
+    {
+        echo "EOT received\n";
+//        socket_write($socket, self::ACK, strlen(self::ACK));
+        if ($this->order_requested) {
+            return false;
+        }
+        return true;
+    }
+
+    private function handleDataMessage($inc): false|string
+    {
+        $inc = substr($inc, 0, -2);
+        $inc = hex2bin($inc);
+        return explode('|', $inc)[0];
+    }
+
+    private function getOrderString(string $barcode): ?string
+    {
+        $order = Order::where('order_barcode', $barcode)->first();
+        if (!$order) {
+            $order = Order::where('test_barcode', $barcode)->first();
+        }
+
+        return $order->order_record ?? null;
     }
 
     public function shortHeader(): string
@@ -31,258 +227,245 @@ class Maglumi
         return 'L|1|N';
     }
 
-    public function processOrder(mixed $order): false|string|null
+    public function getResult(): string
     {
-//        $ip = Analyzer::where('analyzer_id', $order['analyzer_id'])
-//            ->where('lab_id', $order['lab_id'])
-//            ->first()
-//            ->local_ip;
-//
-//        $port = 12000;
-//
-        $analyzer_name = Analyzer::where('analyzer_id', $order['analyzer_id'])
-            ->where('lab_id', $order['lab_id'])
-            ->first()
-            ->name;
-
-
-        $socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
-//        $connection = socket_connect($socket, $ip, $port);
-
-        $connections = $this->socketManager->getAllConnections();
-        $connection = $connections[$analyzer_name];
-
-
-//        $status = socket_get_status($socket);
-//        $connection = $status['eof'] == 0 && $status['timed_out'] == 0;
-
-        $ack = HexCodes::ACK->value;
-        $nak = HexCodes::NAK->value;
-        $enq = HexCodes::ENQ->value;
-        $stx = HexCodes::STX->value;
-        $etx = HexCodes::ETX->value;
-        $eot = HexCodes::EOT->value;
-
-        $result = null;
-        $inc = '';
-        $order_string = null;
-        if ($connection) {
-            $idle = true;
-            $order_request = false;
-            $received = false;
-            while (true) {
-                while ($idle) {
-                    $inc = socket_read($socket, 1024);
-                    if ($inc == $enq) {
-                        $resp = $ack;
-                        socket_write($socket, $resp, strlen($resp));
-                    } else {
-                        $idle = false;
-                    }
-                }
-
-                if ($inc == $stx) {
-                    $resp = $ack;
-                    socket_write($socket, $resp, strlen($resp));
-                    $inc = socket_read($socket, 1024);
-                }
-
-                if (!in_array($inc, [$ack, $enq, $etx, $eot, $stx])) {
-                    $inc = substr($inc, 0, -2);
-                    $inc = hex2bin($inc);
-                    $op_h = explode('|', $inc)[0];
-
-                    if ($op_h == 'H') {
-                        $resp = $ack;
-                        socket_write($socket, $resp, strlen($resp));
-                        $inc = socket_read($socket, 1024);
-                    }
-
-                    if ($op_h == 'Q') {
-                        $order_request = true;
-                        $barcode = explode('|', $inc)[2];
-                        $barcode = preg_replace('/[^0-9]/', '', $barcode);
-                        $order_string = $this->getOrderString($barcode);
-                        if ($order_string) {
-                            $resp = $ack;
-                        } else {
-                            $resp = $nak;
-                        }
-                        socket_write($socket, $resp, strlen($resp));
-                        $inc = socket_read($socket, 1024);
-                    }
-
-                    if ($op_h == 'L') {
-                        $resp = $ack;
-                        socket_write($socket, $resp, strlen($resp));
-                        $inc = socket_read($socket, 1024);
-                    }
-                }
-
-                if ($inc == $etx) {
-                    $resp = $ack;
-                    socket_write($socket, $resp, strlen($resp));
-                    $inc = socket_read($socket, 1024);
-                }
-
-                if ($inc == $eot) {
-                    $received = true;
-                }
-
-                if ($received && $order_request && $order_string) {
-                    socket_write($socket, $enq, strlen($enq));
-                    $resp = socket_read($socket, 1024);
-
-                    if ($resp == $ack) {
-                        socket_write($socket, $stx, strlen($stx));
-                        $resp = socket_read($socket, 1024);
-
-                        if ($resp == $ack) {
-                            $header = bin2hex($this->shortHeader());
-                            $checksum = 0;
-                            for ($i = 0; $i < strlen($header); $i++) {
-                                $checksum += ord($header[$i]);
-                            }
-                            $checksum = $checksum & 0xFF;
-                            $checksum = dechex($checksum);
-                            $header = $header . $checksum;
-                            socket_write($socket, $header, strlen($header));
-                            $resp = socket_read($socket, 1024);
-
-                            if ($resp == $ack) {
-                                $patient = bin2hex($this->patientRecord());
-                                $checksum = 0;
-                                for ($i = 0; $i < strlen($patient); $i++) {
-                                    $checksum += ord($patient[$i]);
-                                }
-                                $checksum = $checksum & 0xFF;
-                                $checksum = dechex($checksum);
-                                $patient = $patient . $checksum;
-                                socket_write($socket, $patient, strlen($patient));
-                                $resp = socket_read($socket, 1024);
-
-                                if ($resp == $ack) {
-                                    $order_string = bin2hex($order_string);
-                                    $checksum = 0;
-                                    for ($i = 0; $i < strlen($order_string); $i++) {
-                                        $checksum += ord($order_string[$i]);
-                                    }
-                                    $checksum = $checksum & 0xFF;
-                                    $checksum = dechex($checksum);
-                                    $order_str = $order_string . $checksum;
-
-                                    socket_write($socket, $order_str, strlen($order_str));
-                                    $resp = socket_read($socket, 1024);
-
-                                    if ($resp == $ack) {
-                                        $terminator = bin2hex($this->terminator());
-                                        $checksum = 0;
-                                        for ($i = 0; $i < strlen($terminator); $i++) {
-                                            $checksum += ord($terminator[$i]);
-                                        }
-                                        $checksum = $checksum & 0xFF;
-                                        $checksum = dechex($checksum);
-                                        $terminator = $terminator . $checksum;
-                                        socket_write($socket, $terminator, strlen($terminator));
-                                        $resp = socket_read($socket, 1024);
-
-                                        if ($resp == $ack) {
-                                            socket_write($socket, $etx, strlen($etx));
-                                            $resp = socket_read($socket, 1024);
-
-                                            if ($resp == $ack) {
-                                                socket_write($socket, $eot, strlen($eot));
-                                                $order_request = false;
-                                                $received = false;
-                                                $order_string = null;
-                                                $idle = true;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        socket_close($socket);
-        return $result;
+        return 'Order processed';
     }
 
-    private function getOrderString(string $barcode): ?string
+    private function handleHeader(string $inc): void
     {
-        $order = Order::where('order_barcode', $barcode)->first();
-        if (!$order) {
-           $order = Order::where('test_barcode', $barcode)->first();
+        $checksum = $this->checkChecksum($inc);
+        if (!$checksum) {
+            echo "Header checksum failed\n";
+            return;
         }
-
-        return $order->order_record ?? null;
+        $inc = substr($inc, 0, -2);
+        $inc = hex2bin($inc);
+        echo "Header received: $inc\n";
     }
-//    public function processOrder_notWorking($order)
-//    {
-//        $ip = Analyzer::where('analyzer_id', $order['analyzer_id'])
-//            ->where('lab_id', $order['lab_id'])
-//            ->first()
-//            ->local_ip;
-//
-//        $maxRetries = 3;
-//        $retryCount = 0;
-//        $timeout = 10; // Timeout in seconds
-//        $connected = false;
-//        $response = null;
-//        $status = null;
-//
-//        while ($retryCount < $maxRetries && !$connected) {
-//            $socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
-//            $connection = @socket_connect($socket, $ip, 12000);
-//
-//            if ($connection) {
-//                // Check if the line is not busy
-//                $read = [$socket];
-//                $write = null;
-//                $except = null;
-//
-//                $ready = socket_select($read, $write, $except, $timeout);
-//
-//                if ($ready > 0) {
-//                    // Line is not busy, send the ENQ message
-//                    socket_write($socket, HexCodes::ENQ->value, strlen(HexCodes::ENQ->value));
-//
-//                    // Listen for a response
-//                    $response = socket_read($socket, 2048); // Adjust the buffer size as needed
-//
-//                    // Check if the response is ACK
-//                    if ($response === HexCodes::ACK->value) {
-//                        $status = 'ACK received';
-//                    } else {
-//                        $status = 'Non-ACK response received';
-//                    }
-//
-//                    $connected = true; // Successfully connected and communicated
-//                } else {
-//                    // Line is busy or timeout occurred
-//                    $status = 'Line is busy or no response';
-//                    $retryCount++;
-//                    sleep($timeout); // Wait before retrying
-//                }
-//            } else {
-//                // Handle connection failure
-//                $status = 'Connection failed';
-//                $retryCount++;
-//                sleep($timeout); // Wait before retrying
-//            }
-//
-//            // Close the socket connection
-//            socket_close($socket);
-//        }
-//
-//        if (!$connected) {
-//            $status = 'Failed to connect after multiple attempts';
-//        }
-//
-//        return response()->json(['status' => $status, 'response' => $response ?? 'No response']);
-//    }
+
+    private function handlePatient(string $inc): void
+    {
+        $checksum = $this->checkChecksum($inc);
+        if (!$checksum) {
+            echo "Patient checksum failed\n";
+            return;
+        }
+        $inc = substr($inc, 0, -2);
+        $inc = hex2bin($inc);
+        echo "Patient data received: $inc\n";
+    }
+
+    private function handleOrder(string $inc): void
+    {
+        $checksum = $this->checkChecksum($inc);
+        if (!$checksum) {
+            echo "Order data checksum failed\n";
+            return;
+        }
+        $inc = substr($inc, 0, -2);
+        $inc = hex2bin($inc);
+        echo "Order data received: $inc\n";
+    }
+
+    private function handleOrderRequest(string $inc): void
+    {
+        $checksum = $this->checkChecksum($inc);
+        if (!$checksum) {
+            echo "Order request checksum failed\n";
+            return;
+        }
+        $inc = substr($inc, 0, -2);
+        $inc = hex2bin($inc);
+        echo "Order request received: $inc\n";
+        $barcode = explode('|', $inc)[2];
+        $barcode = preg_replace('/[^0-9]/', '', $barcode);
+        echo "Barcode: $barcode\n";
+        $this->order_string = $this->getOrderString($barcode);
+        if ($this->order_string) {
+            $this->order_requested = true;
+            $this->order_found = true;
+            echo "Order string: $this->order_string\n";
+        } else {
+            echo "Order not found\n";
+        }
+    }
+
+    private function handleResult(string $inc): void
+    {
+        $checksum = $this->checkChecksum($inc);
+        if (!$checksum) {
+            echo "Result checksum failed\n";
+            return;
+        }
+        $inc = substr($inc, 0, -2);
+        $inc = hex2bin($inc);
+        echo "Result received: $inc\n";
+        $barcode = explode('|', $inc)[2];
+        $barcode = preg_replace('/[^0-9]/', '', $barcode);
+        echo "Barcode: $barcode\n";
+        $lis_code = explode('|', $inc)[3];
+        $lis_code = ltrim($lis_code, "^");
+        echo "LIS code: $lis_code\n";
+        $result = explode('|', $inc)[4];
+        echo "Result: $result\n";
+        $unit = explode('|', $inc)[5];
+        echo "Unit: $unit\n";
+        $ref_range = explode('|', $inc)[6];
+        echo "Reference range: $ref_range\n";
+    }
+
+    private function handleComment(string $inc): void
+    {
+        $checksum = $this->checkChecksum($inc);
+        if (!$checksum) {
+            echo "Comment checksum failed\n";
+            return;
+        }
+        $inc = substr($inc, 0, -2);
+        $inc = hex2bin($inc);
+        echo "Comment received: $inc\n";
+    }
+
+    private function handleTerminator(string $inc): void
+    {
+        $checksum = $this->checkChecksum($inc);
+        if (!$checksum) {
+            echo "Terminator checksum failed\n";
+            return;
+        }
+        $inc = substr($inc, 0, -2);
+        $inc = hex2bin($inc);
+        echo "Terminator received: $inc\n";
+    }
+
+    private function checkChecksum(false|string $inc): bool
+    {
+        $checksum = substr($inc, -2);
+        $inc = substr($inc, 0, -2);
+        $checksumCalc = 0;
+        for ($i = 0; $i < strlen($inc); $i++) {
+            $checksumCalc += ord($inc[$i]);
+        }
+        $checksumCalc = $checksumCalc & 0xFF;
+        $checksumCalc = dechex($checksumCalc);
+        return $checksum == $checksumCalc;
+    }
+
+    private function sendENQ(false|\Socket $socket): void
+    {
+        socket_write($socket, self::ENQ, strlen(self::ENQ));
+        echo "ENQ sent\n";
+    }
+
+    private function sendEOT(false|\Socket $socket): void
+    {
+        socket_write($socket, self::EOT, strlen(self::EOT));
+        echo "EOT sent\n";
+    }
+
+    private function sendETX(false|\Socket $socket): void
+    {
+        socket_write($socket, self::ETX, strlen(self::ETX));
+        echo "ETX sent\n";
+    }
+
+    private function sendShortHeader(false|\Socket $socket): void
+    {
+        $header = $this->shortHeader();
+        $header = bin2hex($header);
+        $checksum = $this->getChecksum($header);
+        $header .= $checksum;
+        socket_write($socket, $header, strlen($header));
+        echo "Short header sent\n";
+    }
+
+    private function sendPatientRecord(false|\Socket $socket): void
+    {
+        $patient = $this->patientRecord();
+        $patient = bin2hex($patient);
+        $checksum = $this->getChecksum($patient);
+        $patient .= $checksum;
+        socket_write($socket, $patient, strlen($patient));
+        echo "Patient record sent\n";
+    }
+
+    private function sendOrderRecord(false|\Socket $socket): void
+    {
+        $order = $this->order_string;
+        $order = bin2hex($order);
+        $checksum = $this->getChecksum($order);
+        $order .= $checksum;
+        socket_write($socket, $order, strlen($order));
+        echo "Order record sent\n";
+    }
+
+    private function sendTerminator(false|\Socket $socket): void
+    {
+        $terminator = $this->terminator();
+        $terminator = bin2hex($terminator);
+        $checksum = $this->getChecksum($terminator);
+        $terminator .= $checksum;
+        socket_write($socket, $terminator, strlen($terminator));
+        echo "Terminator sent\n";
+    }
+
+    private function getChecksum(string $msg): string
+    {
+        $checksum = 0;
+        for ($i = 0; $i < strlen($msg); $i++) {
+            $checksum += ord($msg[$i]);
+        }
+        $checksum = $checksum & 0xFF;
+        return dechex($checksum);
+    }
+
+    private function sendSTX(false|\Socket $socket): void
+    {
+        socket_write($socket, self::STX, strlen(self::STX));
+        echo "STX sent\n";
+    }
+
+    private function handleOrderNotFound(): void
+    {
+        echo "Order requested but not found\n";
+        sleep(1);
+        $this->sendENQ($this->socket);
+        $inc = socket_read($this->socket, 1024);
+        if ($inc == self::ACK) {
+            sleep(1);
+            $this->sendEOT($this->socket);
+        }
+    }
+
+    private function resetSendingOrder(): void
+    {
+        $this->receiving = true;
+        $this->order_requested = false;
+        $this->order_found = false;
+    }
+
+    private function handleSendOrderInformation(): void
+    {
+        sleep(1);
+        $this->sendShortHeader($this->socket);
+        sleep(1);
+        $this->sendPatientRecord($this->socket);
+        sleep(1);
+        $this->sendOrderRecord($this->socket);
+        sleep(1);
+        $this->sendTerminator($this->socket);
+        sleep(1);
+        $this->sendETX($this->socket);
+        sleep(1);
+        $this->sendEOT($this->socket);
+        $inc = socket_read($this->socket, 1024);
+        if ($inc == self::ACK) {
+            echo "ACK received\n";
+            echo "Order processed, switching to receiving\n";
+            $this->resetSendingOrder();
+        }
+    }
 }
 
 

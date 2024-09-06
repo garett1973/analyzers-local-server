@@ -2,11 +2,12 @@
 
 namespace App\Console\Commands;
 
-use App\Libraries\Analyzers\PremierHb9210;
+use App\Libraries\Analyzers\Premier_Hb9210;
+use App\Libraries\Analyzers\UniCell_Dxl_800;
 use Exception;
 use Illuminate\Console\Command;
 
-class ConnectToPremierAnalyzerCommand extends Command
+class ConnectToUniCellAnalyzerCommand extends Command
 {
 
     public function __construct()
@@ -19,14 +20,14 @@ class ConnectToPremierAnalyzerCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'premier:connect';
+    protected $signature = 'unicell:connect';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Connects to PremierHb9210 analyzer and processes the data';
+    protected $description = 'Connects to UniCell_Dxl800 analyzer and processes the data';
 
     /**
      * Execute the console command.
@@ -36,10 +37,10 @@ class ConnectToPremierAnalyzerCommand extends Command
     {
         $counter = 0;
         $connection = false;
-        $premier = PremierHb9210::getInstance();
+        $unicell = UniCell_Dxl_800::getInstance();
 
         while ($counter < 10) {
-            $connection = $premier->connect();
+            $connection = $unicell->connect();
             if ($connection) {
                 break;
             }
@@ -48,8 +49,8 @@ class ConnectToPremierAnalyzerCommand extends Command
         }
 
         if ($connection) {
-            $this->info('Connected to PremierHb9210 Analyzer');
-            $premier->process();
+            $this->info('Connected to UniCell_Dxl800 Analyzer');
+            $unicell->process();
         }
     }
 }

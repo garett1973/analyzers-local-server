@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Services\Interfaces\OrderServiceInterface;
+use App\Libraries\Analyzers\Maglumi;
 use App\Models\Order;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,6 +23,8 @@ class OrderController extends Controller
 
         $order = new Order($order_data);
         $order->save();
+
+        $order_data['id'] = $order->id;
 
         $processing_result = $this->orderService->processOrder($order_data);
 

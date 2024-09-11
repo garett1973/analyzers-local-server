@@ -40,17 +40,24 @@ class TestAnalyzer
 
     public function connect(): bool
     {
-//        $ip = '10.150.9.64';
-//        $port = 53266;
+//        $ip = '192.168.0.110';
+//        $port = 9999;
 ;
 //        $ip = '193.219.86.180';
 //        $port = '6669';
 
-        $ip = '127.0.0.1';
-        $port = 12000;
+//        $ip = '127.0.0.1';
+//        $port = 12000;
 
-        $ip = '0.tcp.eu.ngrok.io';
-        $port = 18525;
+//        $ip = '0.tcp.eu.ngrok.io';
+//        $port = 18525;
+
+//        $ip = 'garett1973.hopto.org';
+//        $port = 9999;
+
+        $ip = '85.206.48.46';
+//        $ip = '192.168.1.111';
+        $port = 9999;
 
         $this->connection = @socket_connect($this->socket, $ip, $port);
         if ($this->connection === false) {
@@ -72,16 +79,29 @@ class TestAnalyzer
         if ($this->connection) {
             echo "Connection established\n";
             while (true) {
-                $inc = socket_read($this->socket, 1024);
+                $inc = socket_read($this->socket, 2024);
                 if ($inc) {
-                    echo "Received: $inc\n";
-                }
-                if ($inc == self::ENQ) {
-                    echo "ENQ received\n";
-                    socket_write($this->socket, self::ACK, strlen(self::ACK));
-                    echo "ACK sent\n";
+                    // Check if the incoming data is a control signal
+                    if ($inc === self::ENQ) {
+                        echo "Received ENQ\n";
+                    } else if ($inc === self::STX) {
+                        echo "Received STX\n";
+                    } else if ($inc === self::ETX) {
+                        echo "Received ETX\n";
+                    } else if ($inc === self::EOT) {
+                        echo "Received EOT\n";
+                    } else {
+                        // Convert the received data to a hexadecimal string for headers/results
+                        $hexInc = bin2hex($inc);
+                        echo "Received (hex): $hexInc\n";
+                    }
+                    $ack = "\x06";
+                    socket_write($this->socket, $ack, strlen($ack));
+
+                    echo "Sent ACK: " . bin2hex(self::ACK) . "\n";
                 }
             }
         }
     }
+
 }

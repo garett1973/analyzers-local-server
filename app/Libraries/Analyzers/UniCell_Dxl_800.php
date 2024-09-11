@@ -86,7 +86,9 @@ class UniCell_Dxl_800
                 if ($numChangedSockets === false) {
                     echo "Socket error: " . socket_strerror(socket_last_error()) . "\n";
                     break;
-                } elseif ($numChangedSockets > 0) {
+                }
+
+                if ($numChangedSockets > 0) {
                     try {
                         $inc = socket_read($this->socket, 1024);
                     } catch (\Exception $e) {
@@ -376,7 +378,7 @@ class UniCell_Dxl_800
     private function getChecksum(string $message): string
     {
         $checksum = 0;
-        for ($i = 0; $i < strlen($message); $i++) {
+        for ($i = 0, $iMax = strlen($message); $i < $iMax; $i++) {
             $checksum += ord($message[$i]);
         }
         $checksum %= 256;

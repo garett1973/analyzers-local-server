@@ -31,13 +31,13 @@ class TestConnectionCommand extends Command
         $connection = false;
         $testAnalyzer = TestAnalyzer::getInstance();
 
-        while ($counter < 10) {
+        while ($counter < 100) {
             $connection = $testAnalyzer->connect();
             if ($connection) {
                 break;
             }
             $counter++;
-            sleep(10);
+            sleep(5);
         }
 
         if ($connection) {

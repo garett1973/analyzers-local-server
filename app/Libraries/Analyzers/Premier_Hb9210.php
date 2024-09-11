@@ -6,15 +6,15 @@ use App\Enums\HexCodes;
 
 class Premier_Hb9210
 {
-    const ACK = HexCodes::ACK->value;
-    const NAK = HexCodes::NAK->value;
-    const ENQ = HexCodes::ENQ->value;
-    const STX = HexCodes::STX->value;
-    const ETX = HexCodes::ETX->value;
-    const EOT = HexCodes::EOT->value;
-    const CR = HexCodes::CR->value;
-    const LF = HexCodes::LF->value;
-    const TERMINATOR = self::CR . self::LF;
+    public const ACK = HexCodes::ACK->value;
+    public const NAK = HexCodes::NAK->value;
+    public const ENQ = HexCodes::ENQ->value;
+    public const STX = HexCodes::STX->value;
+    public const ETX = HexCodes::ETX->value;
+    public const EOT = HexCodes::EOT->value;
+    public const CR = HexCodes::CR->value;
+    public const LF = HexCodes::LF->value;
+    public const TERMINATOR = self::CR . self::LF;
 
     private static ?Premier_Hb9210 $instance = null;
     private $socket;
@@ -41,6 +41,11 @@ class Premier_Hb9210
     {
         $ip = '127.0.0.1';
         $port = 12000;
+
+        $ip = '85.206.48.46';
+//        $ip = '192.168.1.111';
+        $port = 9999;
+
 
         $this->connection = @socket_connect($this->socket, $ip, $port);
         if ($this->connection === false) {

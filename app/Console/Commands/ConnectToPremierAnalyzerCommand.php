@@ -9,11 +9,6 @@ use Illuminate\Console\Command;
 class ConnectToPremierAnalyzerCommand extends Command
 {
 
-    public function __construct()
-    {
-        parent::__construct();
-    }
-
     /**
      * The name and signature of the console command.
      *

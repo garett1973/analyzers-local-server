@@ -41,6 +41,9 @@ class TestAnalyzer
 //        $ip = '192.168.1.111';
         $port = 9999;
 
+        $ip = '127.0.0.1';
+        $port = 12000;
+
         $this->connection = @socket_connect($this->socket, $ip, $port);
         if ($this->connection === false) {
             echo "Socket connection failed: " . socket_strerror(socket_last_error($this->socket)) . "\n";
@@ -72,6 +75,7 @@ class TestAnalyzer
                         echo "Received EOT\n";
                     } else {
                         Log::channel('premier_test')->info("Received data at " . now() . ": $inc");
+                        echo "Received data: $inc\n";
                         // Convert the received data to a hexadecimal string for headers/results
                         $hexInc = bin2hex($inc);
                         Log::channel('premier_test')->info("Received (hex): $hexInc");

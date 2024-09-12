@@ -10,15 +10,14 @@ use Illuminate\Support\Facades\Log;
 
 class DefaultAnalyzer
 {
-    const ACK = HexCodes::ACK->value;
-    const NAK = HexCodes::NAK->value;
-    const ENQ = HexCodes::ENQ->value;
-    const STX = HexCodes::STX->value;
-    const ETX = HexCodes::ETX->value;
-    const EOT = HexCodes::EOT->value;
-    const CR = HexCodes::CR->value;
-    const LF = HexCodes::LF->value;
-    const TERMINATOR = self::CR . self::LF;
+    public const ACK = HexCodes::ACK->value;
+    public const NAK = HexCodes::NAK->value;
+    public const ENQ = HexCodes::ENQ->value;
+    public const STX = HexCodes::STX->value;
+    public const ETX = HexCodes::ETX->value;
+    public const EOT = HexCodes::EOT->value;
+    public const CR = HexCodes::CR->value;
+    public const LF = HexCodes::LF->value;
 
     private static ?DefaultAnalyzer $instance = null;
     private $socket;
@@ -42,7 +41,7 @@ class DefaultAnalyzer
 
     public static function getInstance(): DefaultAnalyzer
     {
-        if (self::$instance == null) {
+        if (self::$instance === null) {
             self::$instance = new DefaultAnalyzer();
         }
 
@@ -94,7 +93,7 @@ class DefaultAnalyzer
                                 $this->receiving = $this->handleEot();
                                 break;
                             default:
-                                $inc = bin2hex($inc);
+//                                $inc = bin2hex($inc);
                                 $header = $this->getDataMessageFirstSegment($inc);
                                 if (!$header) {
                                     $this->sendNAK();
@@ -327,7 +326,7 @@ class DefaultAnalyzer
         foreach ($hex_array as $hex) {
             $checksum += hexdec($hex);
         }
-        $checksum = $checksum & 0xFF;
+        $checksum &= 0xFF;
         return strtoupper(dechex($checksum));
     }
 
@@ -433,7 +432,7 @@ class DefaultAnalyzer
             $checksum += ord($message[$i]);
         }
         $checksum %= 256;
-        $checksum = $checksum & 0xFF;
+        $checksum &= 0xFF;
         return strtoupper(dechex($checksum));
     }
 

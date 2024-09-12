@@ -39,11 +39,11 @@ class Premier_Hb9210
 
     public function connect(): bool
     {
-        $ip = '127.0.0.1';
-        $port = 12000;
+//        $ip = '127.0.0.1';
+//        $port = 12000;
 
-        $ip = '85.206.48.46';
 //        $ip = '192.168.1.111';
+        $ip = '85.206.48.46';
         $port = 9999;
 
 

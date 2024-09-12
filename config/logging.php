@@ -127,6 +127,12 @@ return [
             'path' => storage_path('logs/laravel.log'),
         ],
 
+        'analyzer_communication' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/incoming_messages.log'),
+            'level' => 'debug',
+        ],
+
     ],
 
 ];

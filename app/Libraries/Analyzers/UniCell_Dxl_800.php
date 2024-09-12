@@ -235,12 +235,14 @@ class UniCell_Dxl_800
     private function handleInformationRequest(string $inc): void
     {
         $this->order_request_received = true;
+
         $inc = $this->cleanMessage($inc);
         echo "Information request received: $inc\n";
+
         $barcode = explode('|', $inc)[2];
-        // remove ^ from barcode string
         $barcode = str_replace('^', '', $barcode);
         echo "Barcode: $barcode\n";
+
         $order = Order::where('test_barcode', $barcode)->first();
         if (!$order) {
             $order = Order::where('order_barcode', $barcode)->first();

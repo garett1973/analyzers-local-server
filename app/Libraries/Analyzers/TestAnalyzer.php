@@ -4,6 +4,7 @@ namespace App\Libraries\Analyzers;
 
 use App\Enums\HexCodes;
 use App\Models\Order;
+use Illuminate\Support\Facades\Log;
 
 class TestAnalyzer
 {
@@ -83,25 +84,28 @@ class TestAnalyzer
                 if ($inc) {
                     // Check if the incoming data is a control signal
                     if ($inc === self::ENQ) {
+                        Log::channel('premier_test')->info("Received ENQ at " . now());
                         echo "Received ENQ\n";
-                    } else if ($inc === self::STX) {
-                        echo "Received STX\n";
-                    } else if ($inc === self::ETX) {
-                        echo "Received ETX\n";
                     } else if ($inc === self::EOT) {
+                        Log::channel('premier_test')->info("Received EOT at " . now());
                         echo "Received EOT\n";
                     } else {
+                        Log::channel('premier_test')->info("Received data at " . now() . ": $inc");
                         // Convert the received data to a hexadecimal string for headers/results
                         $hexInc = bin2hex($inc);
+                        Log::channel('premier_test')->info("Received (hex): $hexInc");
                         echo "Received (hex): $hexInc\n";
                     }
-                    $ack = "\x06";
-                    socket_write($this->socket, $ack, strlen($ack));
 
-                    echo "Sent ACK: " . bin2hex(self::ACK) . "\n";
+                    if ($inc !== self::EOT) {
+                        // Send ACK
+                        $ack = "\x06";
+                        socket_write($this->socket, $ack, strlen($ack));
+                        Log::channel('premier_test')->info("Sent ACK at " . now());
+                        echo "Sent ACK: " . bin2hex(self::ACK) . "\n";
+                    }
                 }
             }
         }
     }
-
 }

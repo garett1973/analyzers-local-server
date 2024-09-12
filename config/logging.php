@@ -133,6 +133,12 @@ return [
             'level' => 'debug',
         ],
 
+        'premier_test' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/premier_test_messages.log'),
+            'level' => 'debug',
+        ],
+
     ],
 
 ];

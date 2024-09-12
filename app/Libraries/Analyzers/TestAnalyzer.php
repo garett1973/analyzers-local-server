@@ -9,14 +9,10 @@ use Illuminate\Support\Facades\Log;
 class TestAnalyzer
 {
     const ACK = HexCodes::ACK->value;
-    const NAK = HexCodes::NAK->value;
     const ENQ = HexCodes::ENQ->value;
-    const STX = HexCodes::STX->value;
-    const ETX = HexCodes::ETX->value;
     const EOT = HexCodes::EOT->value;
     const CR = HexCodes::CR->value;
     const LF = HexCodes::LF->value;
-    const TERMINATOR = self::CR . self::LF;
 
     private static ?TestAnalyzer $instance = null;
     private $socket;
@@ -41,21 +37,6 @@ class TestAnalyzer
 
     public function connect(): bool
     {
-//        $ip = '192.168.0.110';
-//        $port = 9999;
-;
-//        $ip = '193.219.86.180';
-//        $port = '6669';
-
-//        $ip = '127.0.0.1';
-//        $port = 12000;
-
-//        $ip = '0.tcp.eu.ngrok.io';
-//        $port = 18525;
-
-//        $ip = 'garett1973.hopto.org';
-//        $port = 9999;
-
         $ip = '85.206.48.46';
 //        $ip = '192.168.1.111';
         $port = 9999;

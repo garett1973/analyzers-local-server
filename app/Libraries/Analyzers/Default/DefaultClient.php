@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Libraries\Analyzers;
+namespace App\Libraries\Analyzers\Default;
 
 use App\Enums\HexCodes;
 use App\Models\Order;
@@ -8,7 +8,7 @@ use App\Models\Result;
 use App\Models\Test;
 use Illuminate\Support\Facades\Log;
 
-class DefaultAnalyzer
+class DefaultClient
 {
     public const ACK = HexCodes::ACK->value;
     public const NAK = HexCodes::NAK->value;
@@ -19,7 +19,7 @@ class DefaultAnalyzer
     public const CR = HexCodes::CR->value;
     public const LF = HexCodes::LF->value;
 
-    private static ?DefaultAnalyzer $instance = null;
+    private static ?DefaultClient $instance = null;
     private $socket;
     private $connection;
     private bool $receiving = true;
@@ -39,10 +39,10 @@ class DefaultAnalyzer
         }
     }
 
-    public static function getInstance(): DefaultAnalyzer
+    public static function getInstance(): DefaultClient
     {
         if (self::$instance === null) {
-            self::$instance = new DefaultAnalyzer();
+            self::$instance = new DefaultClient();
         }
 
         return self::$instance;

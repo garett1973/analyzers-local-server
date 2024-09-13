@@ -2,10 +2,10 @@
 
 namespace App\Console\Commands;
 
-use App\Libraries\Analyzers\TestAnalyzer;
+use App\Libraries\Analyzers\Test\TestClient;
 use Illuminate\Console\Command;
 
-class TestConnectionCommand extends Command
+class TestClientConnectionCommand extends Command
 {
 
     /**
@@ -29,7 +29,7 @@ class TestConnectionCommand extends Command
     {
         $counter = 0;
         $connection = false;
-        $testAnalyzer = TestAnalyzer::getInstance();
+        $testAnalyzer = TestClient::getInstance();
 
         while ($counter < 100) {
             $connection = $testAnalyzer->connect();

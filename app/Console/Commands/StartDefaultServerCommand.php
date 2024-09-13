@@ -2,14 +2,12 @@
 
 namespace App\Console\Commands;
 
-use App\Libraries\Analyzers\Premier_Hb9210;
-use App\Libraries\Analyzers\UniCell_Dxl_800;
+use App\Libraries\Analyzers\Default\DefaultServer;
 use Exception;
 use Illuminate\Console\Command;
 
-class ConnectToUniCellAnalyzerCommand extends Command
+class StartDefaultServerCommand extends Command
 {
-
     public function __construct()
     {
         parent::__construct();
@@ -20,14 +18,14 @@ class ConnectToUniCellAnalyzerCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'unicell:connect';
+    protected $signature = 'default:start';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Connects to UniCell_Dxl800 analyzer and processes the data';
+    protected $description = 'Starts the default server for analyzer connection';
 
     /**
      * Execute the console command.
@@ -37,10 +35,10 @@ class ConnectToUniCellAnalyzerCommand extends Command
     {
         $counter = 0;
         $connection = false;
-        $unicell = UniCell_Dxl_800::getInstance();
+        $defaultServer = DefaultServer::getInstance();
 
         while ($counter < 10) {
-            $connection = $unicell->connect();
+            $connection = $defaultServer->connect();
             if ($connection) {
                 break;
             }
@@ -49,8 +47,8 @@ class ConnectToUniCellAnalyzerCommand extends Command
         }
 
         if ($connection) {
-            $this->info('Connected to UniCell_Dxl800 Analyzer');
-            $unicell->process();
+            $this->info('Default server started');
+            $defaultServer->process();
         }
     }
 }

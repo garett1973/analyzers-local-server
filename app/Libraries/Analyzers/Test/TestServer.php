@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Libraries\Analyzers;
+namespace App\Libraries\Analyzers\Test;
 
 use App\Enums\HexCodes;
 use Illuminate\Support\Facades\Log;
 
-class TestAnalyzer
+class TestServer
 {
     const ACK = HexCodes::ACK->value;
     const ENQ = HexCodes::ENQ->value;
@@ -13,7 +13,7 @@ class TestAnalyzer
     const CR = HexCodes::CR->value;
     const LF = HexCodes::LF->value;
 
-    private static ?TestAnalyzer $instance = null;
+    private static ?TestServer $instance = null;
     private $socket;
     private $connection;
 
@@ -25,10 +25,10 @@ class TestAnalyzer
         }
     }
 
-    public static function getInstance(): TestAnalyzer
+    public static function getInstance(): TestServer
     {
         if (self::$instance == null) {
-            self::$instance = new TestAnalyzer();
+            self::$instance = new TestServer();
         }
 
         return self::$instance;
@@ -36,9 +36,9 @@ class TestAnalyzer
 
     public function connect(): bool
     {
-        $ip = '85.206.48.46';
+//        $ip = '85.206.48.46';
 //        $ip = '192.168.1.111';
-        $port = 9999;
+//        $port = 9999;
 
         $ip = '127.0.0.1';
         $port = 12000;

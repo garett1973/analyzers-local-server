@@ -3,7 +3,6 @@
 namespace App\Libraries\Analyzers;
 
 use App\Enums\HexCodes;
-use App\Models\Order;
 use Illuminate\Support\Facades\Log;
 
 class TestAnalyzer

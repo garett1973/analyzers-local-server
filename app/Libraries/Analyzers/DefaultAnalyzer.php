@@ -50,12 +50,12 @@ class DefaultAnalyzer
 
     public function connect(): bool
     {
-//        $ip = '85.206.48.46';
+        $ip = '85.206.48.46';
 ////        $ip = '192.168.1.111';
-//        $port = 9999;
+        $port = 9999;
 
-        $ip = '127.0.0.1';
-        $port = 12000;
+//        $ip = '127.0.0.1';
+//        $port = 12000;
 
         $this->connection = @socket_connect($this->socket, $ip, $port);
         if ($this->connection === false) {
@@ -93,7 +93,9 @@ class DefaultAnalyzer
                                 $this->receiving = $this->handleEot();
                                 break;
                             default:
-//                                $inc = bin2hex($inc);
+                                echo "Received string: $inc\n";
+                                echo "Hex: " . bin2hex($inc) . "\n";
+                                $inc = bin2hex($inc);
                                 $header = $this->getDataMessageFirstSegment($inc);
                                 if (!$header) {
                                     $this->sendNAK();
@@ -303,7 +305,10 @@ class DefaultAnalyzer
         // remove LF, CR from message end
         $inc = substr($inc, 0, -4);
         // remove checksum 2, checksum 1
-        return substr($inc, 0, -4);
+        $inc = substr($inc, 0, -4);
+        Log::channel('analyzer_communication')->info('Message for checksum calculation: ' . $inc);
+        echo "Message for checksum calculation: $inc\n";
+        return $inc;
     }
 
     private function checkChecksum(string $inc, string $checksum): bool

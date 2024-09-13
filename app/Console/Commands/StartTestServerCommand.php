@@ -2,12 +2,11 @@
 
 namespace App\Console\Commands;
 
-use App\Libraries\Analyzers\DefaultAnalyzer;
-use App\Libraries\Analyzers\Maglumi;
+use App\Libraries\Analyzers\Test\TestServer;
 use Exception;
 use Illuminate\Console\Command;
 
-class ConnectToDefaultAnalyzerCommand extends Command
+class StartTestServerCommand extends Command
 {
     public function __construct()
     {
@@ -19,14 +18,14 @@ class ConnectToDefaultAnalyzerCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'default:connect';
+    protected $signature = 'test:start';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Connects to the default analyzer';
+    protected $description = 'Starts the test server for analyzer connection';
 
     /**
      * Execute the console command.
@@ -36,10 +35,10 @@ class ConnectToDefaultAnalyzerCommand extends Command
     {
         $counter = 0;
         $connection = false;
-        $defaultAnalyzer = DefaultAnalyzer::getInstance();
+        $testServer = TestServer::getInstance();
 
         while ($counter < 10) {
-            $connection = $defaultAnalyzer->connect();
+            $connection = $testServer->connect();
             if ($connection) {
                 break;
             }
@@ -48,8 +47,8 @@ class ConnectToDefaultAnalyzerCommand extends Command
         }
 
         if ($connection) {
-            $this->info('Connected to Default Analyzer');
-            $defaultAnalyzer->process();
+            $this->info('Test server started');
+            $testServer->process();
         }
     }
 }

@@ -1,12 +1,11 @@
 <?php
 
-namespace App\Libraries\Analyzers;
+namespace App\Libraries\Analyzers\Test;
 
 use App\Enums\HexCodes;
-use App\Models\Order;
 use Illuminate\Support\Facades\Log;
 
-class TestAnalyzer
+class TestServer
 {
     const ACK = HexCodes::ACK->value;
     const ENQ = HexCodes::ENQ->value;
@@ -14,7 +13,7 @@ class TestAnalyzer
     const CR = HexCodes::CR->value;
     const LF = HexCodes::LF->value;
 
-    private static ?TestAnalyzer $instance = null;
+    private static ?TestServer $instance = null;
     private $socket;
     private $connection;
 
@@ -26,10 +25,10 @@ class TestAnalyzer
         }
     }
 
-    public static function getInstance(): TestAnalyzer
+    public static function getInstance(): TestServer
     {
         if (self::$instance == null) {
-            self::$instance = new TestAnalyzer();
+            self::$instance = new TestServer();
         }
 
         return self::$instance;
@@ -37,12 +36,12 @@ class TestAnalyzer
 
     public function connect(): bool
     {
-        $ip = '85.206.48.46';
+//        $ip = '85.206.48.46';
 //        $ip = '192.168.1.111';
-        $port = 9999;
+//        $port = 9999;
 
-//        $ip = '127.0.0.1';
-//        $port = 12000;
+        $ip = '127.0.0.1';
+        $port = 12000;
 
         $this->connection = @socket_connect($this->socket, $ip, $port);
         if ($this->connection === false) {
@@ -74,8 +73,8 @@ class TestAnalyzer
                         Log::channel('premier_test')->info("Received EOT at " . now());
                         echo "Received EOT\n";
                     } else {
-                        Log::channel('premier_test')->info("Received string at " . now() . ": $inc");
-                        echo "Received string: $inc\n";
+                        Log::channel('premier_test')->info("Received data at " . now() . ": $inc");
+                        echo "Received data: $inc\n";
                         // Convert the received data to a hexadecimal string for headers/results
                         $hexInc = bin2hex($inc);
                         Log::channel('premier_test')->info("Received (hex): $hexInc");

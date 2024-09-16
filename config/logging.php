@@ -127,18 +127,30 @@ return [
             'path' => storage_path('logs/laravel.log'),
         ],
 
-        'analyzer_communication' => [
+        'test_client_log' => [
             'driver' => 'single',
-            'path' => storage_path('logs/incoming_messages.log'),
+            'path' => storage_path('logs/test_client.log'),
             'level' => 'debug',
         ],
 
-        'premier_test' => [
+        'test_server_log' => [
             'driver' => 'single',
-            'path' => storage_path('logs/premier_test_messages.log'),
+            'path' => storage_path('logs/test_server.log'),
             'level' => 'debug',
         ],
 
+
+        'default_client_log' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/default_client.log'),
+            'level' => 'debug',
+        ],
+
+        'default_server_log' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/default_server.log'),
+            'level' => 'debug',
+        ],
     ],
 
 ];

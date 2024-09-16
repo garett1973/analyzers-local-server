@@ -64,15 +64,14 @@ class DefaultClient
         if ($this->connection === false) {
             $errorMessage = socket_strerror(socket_last_error($this->socket));
             echo "Socket connection failed: $errorMessage\n";
-            Log::channel('analyzer_communication')->error("Socket connection failed at " . now() . ": $errorMessage");
+            Log::channel('default_client_log')->error(now() . " -> Socket connection failed. Error: " . ": $errorMessage");
             return false;
         }
 
         echo "Connection established\n";
-        Log::channel('analyzer_communication')->debug('Connection to analyzer established at ' . now());
+        Log::channel('default_client_log')->debug(now() . ' -> Connection to analyzer established');
         return true;
     }
-
 
     public function process(): void
     {
@@ -172,14 +171,14 @@ class DefaultClient
     private function handleEnq(): void
     {
         echo "ENQ received\n";
-        Log::channel('analyzer_communication')->info('ENQ received at ' . now());
+        Log::channel('default_client_log')->info(now() . ' -> ENQ received');
         $this->sendACK();
     }
 
     private function handleEot(): bool
     {
         echo "EOT received\n";
-        Log::channel('analyzer_communication')->info('EOT received at ' . now());
+        Log::channel('default_client_log')->info(now() . ' -> EOT received');
         if ($this->order_requested) {
             $this->barcode = '';
             return false;
@@ -191,21 +190,21 @@ class DefaultClient
     private function sendACK(): void
     {
         socket_write($this->socket, self::ACK, strlen(self::ACK));
-        Log::channel('analyzer_communication')->info('ACK sent at ' . now());
+        Log::channel('default_client_log')->info(now() . ' -> ACK sent');
         echo "ACK sent\n";
     }
 
     private function sendNAK(): void
     {
         socket_write($this->socket, self::NAK, strlen(self::NAK));
-        Log::channel('analyzer_communication')->info('NAK sent at ' . now());
+        Log::channel('default_client_log')->info(now() . ' -> NAK sent');
         echo "NAK sent\n";
     }
 
     private function sendENQ(): void
     {
         socket_write($this->socket, self::ENQ, strlen(self::ENQ));
-        Log::channel('analyzer_communication')->info('ENQ sent at ' . now());
+        Log::channel('default_client_log')->info(now() . ' -> ENQ sent');
         echo "ENQ sent\n";
     }
 
@@ -216,7 +215,7 @@ class DefaultClient
         $this->receiving = true;
         $this->barcode = '';
         socket_write($this->socket, self::EOT, strlen(self::EOT));
-        Log::channel('analyzer_communication')->info('EOT sent at ' . now());
+        Log::channel('default_client_log')->info(now() . ' -> EOT sent');
         echo "EOT sent\n";
     }
 
@@ -235,27 +234,27 @@ class DefaultClient
 
     private function handleHeader(string $inc): void
     {
-        Log::channel('analyzer_communication')->info('Header received at ' . now() . ': ' . $inc);
+        Log::channel('default_client_log')->info(now() . ' -> Header received: ' . $inc);
         $inc = $this->cleanMessage($inc);
-        Log::channel('analyzer_communication')->info('Header string: ' . $inc);
+        Log::channel('default_client_log')->info('Header string: ' . $inc);
         echo "Header received: $inc\n";
         $this->sendACK();
     }
 
     private function handlePatient(string $inc): void
     {
-        Log::channel('analyzer_communication')->info('Patient received at ' . now() . ': ' . $inc);
+        Log::channel('default_client_log')->info(now() . ' -> Patient received: ' . $inc);
         $inc = $this->cleanMessage($inc);
-        Log::channel('analyzer_communication')->info('Patient string: ' . $inc);
+        Log::channel('default_client_log')->info('Patient string: ' . $inc);
         echo "Patient data received: $inc\n";
         $this->sendACK();
     }
 
     private function handleOrder(string $inc): void
     {
-        Log::channel('analyzer_communication')->info('Order received at ' . now() . ': ' . $inc);
+        Log::channel('default_client_log')->info(now() . ' -> Order received: ' . $inc);
         $inc = $this->cleanMessage($inc);
-        Log::channel('analyzer_communication')->info('Order string: ' . $inc);
+        Log::channel('default_client_log')->info('Order string: ' . $inc);
         echo "Order data received: $inc\n";
 
         $this->barcode = explode('|', $inc)[3];
@@ -268,11 +267,11 @@ class DefaultClient
     private function handleOrderRequest(string $inc): void
     {
         $this->order_requested = true;
-        Log::channel('analyzer_communication')->info('Order request received at ' . now() . ': ' . $inc);
+        Log::channel('default_client_log')->info(now() . ' -> Order request received: ' . $inc);
 
         // Clean the incoming message
         $inc = $this->cleanMessage($inc);
-        Log::channel('analyzer_communication')->info('Order request string: ' . $inc);
+        Log::channel('default_client_log')->info('Order request string: ' . $inc);
         echo "Order request received: $inc\n";
 
         // Extract and clean the barcode
@@ -302,18 +301,18 @@ class DefaultClient
 
     private function handleComment(string $inc): void
     {
-        Log::channel('analyzer_communication')->info('Comment received at ' . now() . ': ' . $inc);
+        Log::channel('default_client_log')->info(now() . ' -> Comment received: ' . $inc);
         $inc = $this->cleanMessage($inc);
-        Log::channel('analyzer_communication')->info('Comment string: ' . $inc);
+        Log::channel('default_client_log')->info('Comment string: ' . $inc);
         echo "Comment received: $inc\n";
         $this->sendACK();
     }
 
     private function handleTerminator(string $inc): void
     {
-        Log::channel('analyzer_communication')->info('Terminator received at ' . now() . ': ' . $inc);
+        Log::channel('default_client_log')->info(now() . ' -> Terminator received: ' . $inc);
         $inc = $this->cleanMessage($inc);
-        Log::channel('analyzer_communication')->info('Terminator string: ' . $inc);
+        Log::channel('default_client_log')->info('Terminator string: ' . $inc);
         echo "Terminator received: $inc\n";
         $this->sendACK();
     }
@@ -343,7 +342,7 @@ class DefaultClient
         // Remove STX from message start and LF, CR, checksum from message end
         $inc = substr($inc, 2);
         $inc = substr($inc, 0, -8);
-        Log::channel('analyzer_communication')->info('Message for checksum calculation: ' . $inc);
+        Log::channel('default_client_log')->info('Message for checksum calculation: ' . $inc);
         echo "Message for checksum calculation: $inc\n";
         return $inc;
     }
@@ -388,11 +387,11 @@ class DefaultClient
 
     private function handleResult(string $inc): void
     {
-        Log::channel('analyzer_communication')->info('Result received at ' . now() . ': ' . $inc);
+        Log::channel('default_client_log')->info(now() . 'Result received: ' . $inc);
 
         // Clean the incoming message
         $inc = $this->cleanMessage($inc);
-        Log::channel('analyzer_communication')->info('Result string: ' . $inc);
+        Log::channel('default_client_log')->info('Result string: ' . $inc);
         echo "Result received: $inc\n";
 
 //    $barcode = explode('|', $inc)[2];
@@ -414,14 +413,12 @@ class DefaultClient
 
         // Handle the result saving outcome
         if ($result_saved) {
+            Log::channel('default_client_log')->info(now() . ' -> Result saved');
             $this->sendACK();
-            Log::channel('analyzer_communication')->info('Result saved at ' . now());
-            Log::channel('analyzer_communication')->info('ACK sent at ' . now());
             echo "Result saved\n";
         } else {
+            Log::channel('default_client_log')->error(now() . ' -> Result save error');
             $this->sendNAK();
-            Log::channel('analyzer_communication')->error('Result save error at ' . now());
-            Log::channel('analyzer_communication')->error('NAK sent at ' . now());
             echo "Result not saved\n";
         }
     }
@@ -430,10 +427,11 @@ class DefaultClient
     private function handleOrderNotFound(): void
     {
         echo "Order requested but not found\n";
-        Log::channel('analyzer_communication')->info('Order requested but not found at ' . now());
+        Log::channel('default_client_log')->info(now() . 'Order requested but not found for barcode ' . $this->barcode);
         $this->sendENQ();
         $inc = socket_read($this->socket, 1024);
         if ($inc == self::ACK) {
+            Log::channel('default_client_log')->info(now() . 'ACK received');
             $this->sendEOT();
         }
     }
@@ -445,12 +443,10 @@ class DefaultClient
         $this->order_record = $this->prepareMessageString($this->order_record);
         $this->terminator = $this->prepareMessageString($this->getTerminator());
 
-        socket_write($this->socket, self::ENQ, strlen(self::ENQ));
-        Log::channel('analyzer_communication')->info('ENQ sent at ' . now());
-        echo "ENQ sent\n";
+        $this->sendENQ();
         $inc = socket_read($this->socket, 1024);
         if ($inc == self::ACK) {
-            Log::channel('analyzer_communication')->info('ACK received at ' . now());
+            Log::channel('default_client_log')->info(now() . 'ACK received');
             echo "ACK received\n";
             $this->sendMessages();
         }
@@ -523,6 +519,9 @@ class DefaultClient
         }
     }
 
+    /**
+     * @throws Exception
+     */
     private function sendMessage(string $message): void
     {
         socket_write($this->socket, $message, strlen($message));
@@ -549,7 +548,7 @@ class DefaultClient
 
     private function reconnect(): void
     {
-        Log::channel('analyzer_communication')->error('Reconnecting at ' . now());
+        Log::channel('default_client_log')->error(now() . 'Reconnecting...');
         echo "Reconnecting...\n";
         socket_close($this->socket);
         $connected = $this->connect();

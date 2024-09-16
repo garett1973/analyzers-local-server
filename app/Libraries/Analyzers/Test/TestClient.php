@@ -67,25 +67,23 @@ class TestClient
                 if ($inc) {
                     // Check if the incoming data is a control signal
                     if ($inc === self::ENQ) {
-                        Log::channel('premier_test')->info("Received ENQ at " . now());
+                        Log::channel('test_client_log')->info("Received ENQ at " . now());
                         echo "Received ENQ\n";
                     } else if ($inc === self::EOT) {
-                        Log::channel('premier_test')->info("Received EOT at " . now());
+                        Log::channel('test_client_log')->info("Received EOT at " . now());
                         echo "Received EOT\n";
                     } else {
-                        Log::channel('premier_test')->info("Received string at " . now() . ": $inc");
+                        Log::channel('test_client_log')->info("Received string at " . now() . ": $inc");
                         echo "Received string: $inc\n";
                         // Convert the received data to a hexadecimal string for headers/results
                         $hexInc = bin2hex($inc);
-                        Log::channel('premier_test')->info("Received (hex): $hexInc");
+                        Log::channel('test_client_log')->info("Received (hex): $hexInc");
                         echo "Received (hex): $hexInc\n";
                     }
 
                     if ($inc !== self::EOT) {
-                        // Send ACK
-                        $ack = "\x06";
-                        socket_write($this->socket, $ack, strlen($ack));
-                        Log::channel('premier_test')->info("Sent ACK at " . now());
+                        socket_write($this->socket, self::ACK, strlen(self::ACK));
+                        Log::channel('test_client_log')->info("Sent ACK at " . now());
                         echo "Sent ACK: " . bin2hex(self::ACK) . "\n";
                     }
                 }

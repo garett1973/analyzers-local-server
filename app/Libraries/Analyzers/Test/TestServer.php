@@ -81,7 +81,7 @@ class TestServer
         }
 
         echo "Client connected\n";
-        socket_write($this->client_socket, 'Hello from server, you stupid bastard!', strlen('Hello from server, you stupid bastard!'));
+//        socket_write($this->client_socket, 'Hello from server, you stupid bastard!', strlen('Hello from server, you stupid bastard!'));
         socket_getpeername($this->client_socket, $client_ip);
         echo "Client IP: $client_ip\n";
 

@@ -38,7 +38,7 @@ class StartDefaultServerCommand extends Command
         $defaultServer = DefaultServer::getInstance();
 
         while ($counter < 10) {
-            $connection = $defaultServer->connect();
+            $connection = $defaultServer->start();
             if ($connection) {
                 break;
             }

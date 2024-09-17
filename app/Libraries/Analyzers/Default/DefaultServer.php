@@ -49,7 +49,7 @@ class DefaultServer
         return self::$instance;
     }
 
-    public function connect(): bool
+    public function start(): bool
     {
 //        $ip = '85.206.48.46';
 //        $ip = '192.168.1.111';

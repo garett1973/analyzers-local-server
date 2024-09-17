@@ -36,12 +36,12 @@ class TestClient
 
     public function connect(): bool
     {
-        $ip = '85.206.48.46';
+//        $ip = '85.206.48.46';
 //        $ip = '192.168.1.111';
-        $port = 9999;
+//        $port = 9999;
 
-//        $ip = '127.0.0.1';
-//        $port = 12000;
+        $ip = '127.0.0.1';
+        $port = 12000;
 
         $this->connection = @socket_connect($this->socket, $ip, $port);
         if ($this->connection === false) {

@@ -6,6 +6,7 @@ use App\Enums\HexCodes;
 use App\Models\Order;
 use App\Models\Result;
 use App\Models\Test;
+use Exception;
 use Illuminate\Support\Facades\Log;
 
 class DefaultServer
@@ -21,7 +22,7 @@ class DefaultServer
 
     private static ?DefaultServer $instance = null;
     private $server_socket;
-    private $connection;
+    private $client_socket;
     private bool $receiving = true;
     private bool $order_requested = false;
     private bool $order_found = false;
@@ -48,96 +49,161 @@ class DefaultServer
         return self::$instance;
     }
 
-    public function connect(): bool
+    public function start(): bool
     {
 //        $ip = '85.206.48.46';
-////        $ip = '192.168.1.111';
+//        $ip = '192.168.1.111';
 //        $port = 9999;
 
         $ip = '127.0.0.1';
         $port = 12000;
 
-        socket_bind($this->server_socket, $ip, $port);
-        socket_listen($this->server_socket);
+        // Create socket
+        $this->server_socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
+        if ($this->server_socket === false) {
+            echo "Socket creation failed: " . socket_strerror(socket_last_error()) . "\n";
+            return false;
+        }
 
-        echo "Socket server started on $ip:$port";
+        // Bind socket
+        if (socket_bind($this->server_socket, $ip, $port) === false) {
+            echo "Socket bind failed: " . socket_strerror(socket_last_error($this->server_socket)) . "\n";
+            return false;
+        }
 
-        $clientSocket = socket_accept($this->server_socket);
-        echo "Client connected";
-        socket_getpeername($clientSocket, $ip);
-        echo "Client IP: $ip";
+        // Listen on socket
+        if (socket_listen($this->server_socket, 5) === false) {
+            echo "Socket listen failed: " . socket_strerror(socket_last_error($this->server_socket)) . "\n";
+            return false;
+        }
 
-        return $this->connection;
+        echo "Socket server started on $ip:$port\n";
+
+        // Accept client connection
+        $this->client_socket = socket_accept($this->server_socket);
+        if ($this->client_socket === false) {
+            echo "Socket accept failed: " . socket_strerror(socket_last_error($this->server_socket)) . "\n";
+            return false;
+        }
+
+        echo "Client connected\n";
+        socket_getpeername($this->client_socket, $client_ip);
+        echo "Client IP: $client_ip\n";
+
+        return true;
     }
 
     public function process(): void
     {
         while (true) {
-                echo "Receiving: $this->receiving\n";
-                while ($this->receiving) {
-                    $inc = socket_read($this->socket, 1024);
+            // Check if the client socket is still connected
+            if ($this->isClientDisconnected()) {
+                echo "Client socket error\n";
+                $this->handleClientDisconnection();
+                break;
+            }
 
-                    if ($inc) {
-                        switch ($inc) {
-                            case self::ENQ:
-                                $this->handleEnq();
-                                break;
-                            case self::EOT:
-                                $this->receiving = $this->handleEot();
-                                break;
-                            default:
-//                                $inc = bin2hex($inc);
-                                $header = $this->getDataMessageFirstSegment($inc);
-                                if (!$header) {
-                                    $this->sendNAK();
-                                    break;
-                                }
-                                switch ($header) {
-                                    case 'H':
-                                        $this->handleHeader($inc);
-                                        break;
-                                    case 'P':
-                                        $this->handlePatient($inc);
-                                        break;
-                                    case 'O':
-                                        $this->handleOrder($inc);
-                                        break;
-                                    case 'Q':
-                                        $this->handleOrderRequest($inc);
-                                        break;
-                                    case 'R':
-                                        $this->handleResult($inc);
-                                        break;
-                                    case 'C':
-                                        $this->handleComment($inc);
-                                        break;
-                                    case 'L':
-                                        $this->handleTerminator($inc);
-                                        break;
-                                }
-                        }
-                    }
+            while ($this->receiving) {
+                $inc = socket_read($this->client_socket, 1024);
+
+                if ($inc === false) {
+                    echo "Socket read failed: " . socket_strerror(socket_last_error($this->client_socket)) . "\n";
+                    $this->handleClientDisconnection();
+                    break;
                 }
-                echo "Receiving stopped, order was requested\n";
-                if (!$this->order_found) {
-                    $this->handleOrderNotFound();
-                } else {
-                    $this->sendOrderRecord();
+
+                if ($inc) {
+                    $this->handleIncomingMessage($inc);
                 }
+            }
+
+            echo "Receiving stopped, order was requested\n";
+            $this->handleOrderStatus();
+        }
+    }
+
+    private function isClientDisconnected(): bool
+    {
+        echo "Checking client socket\n";
+        return socket_get_option($this->client_socket, SOL_SOCKET, SO_ERROR) !== 0;
+    }
+
+    private function handleClientDisconnection(): void
+    {
+        // Implement reconnection logic or cleanup here
+        $this->reconnect();
+    }
+
+    private function handleIncomingMessage(string $inc): void
+    {
+        switch ($inc) {
+            case self::ENQ:
+                $this->handleEnq();
+                break;
+            case self::EOT:
+                $this->receiving = $this->handleEot();
+                break;
+            default:
+                $header = $this->getDataMessageFirstSegment($inc);
+                if (!$header) {
+                    $this->sendNAK();
+                    break;
+                }
+                $this->handleMessage($header, $inc);
+                break;
+        }
+    }
+
+    private function handleOrderStatus(): void
+    {
+        if (!$this->order_found) {
+            $this->handleOrderNotFound();
+        } else {
+            $this->sendOrderRecord();
+        }
+    }
+
+    private function handleMessage(string $header, string $inc): void
+    {
+        switch ($header) {
+            case 'H':
+                $this->handleHeader($inc);
+                break;
+            case 'P':
+                $this->handlePatient($inc);
+                break;
+            case 'O':
+                $this->handleOrder($inc);
+                break;
+            case 'Q':
+                $this->handleOrderRequest($inc);
+                break;
+            case 'R':
+                $this->handleResult($inc);
+                break;
+            case 'C':
+                $this->handleComment($inc);
+                break;
+            case 'L':
+                $this->handleTerminator($inc);
+                break;
+            default:
+                $this->sendNAK();
+                break;
         }
     }
 
     private function handleEnq(): void
     {
         echo "ENQ received\n";
-        Log::channel('analyzer_communication')->info('ENQ received at ' . now());
+        Log::channel('default_server_log')->info(now() . ' -> ENQ received');
         $this->sendACK();
     }
 
     private function handleEot(): bool
     {
         echo "EOT received\n";
-        Log::channel('analyzer_communication')->info('EOT received at ' . now());
+        Log::channel('default_server_log')->info(now() . ' -> EOT received');
         if ($this->order_requested) {
             $this->barcode = '';
             return false;
@@ -148,22 +214,22 @@ class DefaultServer
 
     private function sendACK(): void
     {
-        socket_write($this->socket, self::ACK, strlen(self::ACK));
-        Log::channel('analyzer_communication')->info('ACK sent at ' . now());
+        socket_write($this->client_socket, self::ACK, strlen(self::ACK));
+        Log::channel('default_server_log')->info(now() . ' -> ACK sent');
         echo "ACK sent\n";
     }
 
     private function sendNAK(): void
     {
-        socket_write($this->socket, self::NAK, strlen(self::NAK));
-        Log::channel('analyzer_communication')->info('NAK sent at ' . now());
+        socket_write($this->client_socket, self::NAK, strlen(self::NAK));
+        Log::channel('default_server_log')->info(now() . 'NAK sent');
         echo "NAK sent\n";
     }
 
     private function sendENQ(): void
     {
-        socket_write($this->socket, self::ENQ, strlen(self::ENQ));
-        Log::channel('analyzer_communication')->info('ENQ sent at ' . now());
+        socket_write($this->client_socket, self::ENQ, strlen(self::ENQ));
+        Log::channel('default_server_log')->info(now() . 'ENQ sent');
         echo "ENQ sent\n";
     }
 
@@ -173,8 +239,8 @@ class DefaultServer
         $this->order_requested = false;
         $this->receiving = true;
         $this->barcode = '';
-        socket_write($this->socket, self::EOT, strlen(self::EOT));
-        Log::channel('analyzer_communication')->info('EOT sent at ' . now());
+        socket_write($this->client_socket, self::EOT, strlen(self::EOT));
+        Log::channel('default_server_log')->info('EOT sent at ' . now());
         echo "EOT sent\n";
     }
 
@@ -193,27 +259,27 @@ class DefaultServer
 
     private function handleHeader(string $inc): void
     {
-        Log::channel('analyzer_communication')->info('Header received at ' . now() . ': ' . $inc);
+        Log::channel('default_server_log')->info(now() . ' -> Header received: ' . $inc);
         $inc = $this->cleanMessage($inc);
-        Log::channel('analyzer_communication')->info('Header string: ' . $inc);
+        Log::channel('default_server_log')->info('Header string: ' . $inc);
         echo "Header received: $inc\n";
         $this->sendACK();
     }
 
     private function handlePatient(string $inc): void
     {
-        Log::channel('analyzer_communication')->info('Patient received at ' . now() . ': ' . $inc);
+        Log::channel('default_server_log')->info(now() . ' -> Patient received: ' . $inc);
         $inc = $this->cleanMessage($inc);
-        Log::channel('analyzer_communication')->info('Patient string: ' . $inc);
+        Log::channel('default_server_log')->info('Patient string: ' . $inc);
         echo "Patient data received: $inc\n";
         $this->sendACK();
     }
 
     private function handleOrder(string $inc): void
     {
-        Log::channel('analyzer_communication')->info('Order received at ' . now() . ': ' . $inc);
+        Log::channel('default_server_log')->info(now() . ' -> Order received: ' . $inc);
         $inc = $this->cleanMessage($inc);
-        Log::channel('analyzer_communication')->info('Order string: ' . $inc);
+        Log::channel('default_server_log')->info('Order string: ' . $inc);
         echo "Order data received: $inc\n";
 
         $this->barcode = explode('|', $inc)[3];
@@ -226,15 +292,19 @@ class DefaultServer
     private function handleOrderRequest(string $inc): void
     {
         $this->order_requested = true;
-        Log::channel('analyzer_communication')->info('Order request received at ' . now() . ': ' . $inc);
+        Log::channel('default_server_log')->info(now() . ' -> Order request received: ' . $inc);
+
+        // Clean the incoming message
         $inc = $this->cleanMessage($inc);
-        Log::channel('analyzer_communication')->info('Order request string: ' . $inc);
+        Log::channel('default_server_log')->info('Order request string: ' . $inc);
         echo "Order request received: $inc\n";
 
-        $this->barcode = explode('|', $inc)[2];
-        $this->barcode = preg_replace('/[^0-9]/', '', $this->barcode);
+        // Extract and clean the barcode
+        $parts = explode('|', $inc);
+        $this->barcode = preg_replace('/[^0-9]/', '', $parts[2]);
         echo "Barcode from request string in order request: $this->barcode\n";
 
+        // Retrieve the order record
         $this->order_record = $this->getOrderString();
         if ($this->order_record) {
             $this->order_found = true;
@@ -242,129 +312,124 @@ class DefaultServer
         } else {
             echo "Order not found\n";
         }
+
+        // Send acknowledgment
         $this->sendACK();
     }
 
     private function handleComment(string $inc): void
     {
-        Log::channel('analyzer_communication')->info('Comment received at ' . now() . ': ' . $inc);
+        Log::channel('default_server_log')->info(now() . ' -> Comment received: ' . $inc);
         $inc = $this->cleanMessage($inc);
-        Log::channel('analyzer_communication')->info('Comment string: ' . $inc);
+        Log::channel('default_server_log')->info('Comment string: ' . $inc);
         echo "Comment received: $inc\n";
         $this->sendACK();
     }
 
     private function handleTerminator(string $inc): void
     {
-        Log::channel('analyzer_communication')->info('Terminator received at ' . now() . ': ' . $inc);
+        Log::channel('default_server_log')->info(now() . 'Terminator received: ' . $inc);
         $inc = $this->cleanMessage($inc);
-        Log::channel('analyzer_communication')->info('Terminator string: ' . $inc);
+        Log::channel('default_server_log')->info('Terminator string: ' . $inc);
         echo "Terminator received: $inc\n";
         $this->sendACK();
     }
 
-    private function processMessage(false|string $inc): false|string
+    private function processMessage(string $inc): ?string
     {
-        $checksum = $this->getChecksumFromString($inc);
-        $prepared_inc = $this->prepareMessageForChecksumCalculation($inc);
-        $checksum_ok = $this->checkChecksum($prepared_inc, $checksum);
+        $checksum = $this->extractChecksum($inc);
+        $preparedInc = $this->prepareMessageForChecksum($inc);
 
-        if (!$checksum_ok) {
+        if (!$this->isChecksumValid($preparedInc, $checksum)) {
             return false;
         }
 
         return $this->cleanMessage($inc);
     }
 
-    private function getChecksumFromString(string $inc): string
+    private function extractChecksum(string $inc): string
     {
-        // remove LF, CR from message end
+        // Remove LF, CR from message end and extract checksum
         $inc = substr($inc, 0, -4);
-        // get checksum 1, checksum 2
-        $checksum =  substr($inc, -4);
-        // convert checksum from hex to string
+        $checksum = substr($inc, -4);
         return strtoupper(hex2bin($checksum));
     }
 
-    private function prepareMessageForChecksumCalculation(string $inc): string
+    private function prepareMessageForChecksum(string $inc): string
     {
-        // remove STX from message start
+        // Remove STX from message start and LF, CR, checksum from message end
         $inc = substr($inc, 2);
-        // remove LF, CR from message end
-        $inc = substr($inc, 0, -4);
-        // remove checksum 2, checksum 1
-        return substr($inc, 0, -4);
+        return substr($inc, 0, -8);
     }
 
-    private function checkChecksum(string $inc, string $checksum): bool
+    private function isChecksumValid(string $inc, string $checksum): bool
     {
+        // Remove leading zero from checksum if present
         if ($checksum[0] == '0') {
             $checksum = substr($checksum, 1);
         }
+
         $calculatedChecksum = $this->calculateChecksum($inc);
-        if ($calculatedChecksum != $checksum) {
+        if ($calculatedChecksum !== $checksum) {
             return false;
         }
+
         echo "Checksum OK\n";
         return true;
     }
 
     private function calculateChecksum(string $inc): string
     {
-        $hex_array = str_split($inc, 2);
-        $checksum = 0;
-        foreach ($hex_array as $hex) {
-            $checksum += hexdec($hex);
-        }
+        $hexArray = str_split($inc, 2);
+        $checksum = array_reduce($hexArray, static function($carry, $hex) {
+            return $carry + hexdec($hex);
+        }, 0);
+
         $checksum &= 0xFF;
         return strtoupper(dechex($checksum));
     }
 
     private function getOrderString(): ?string
     {
-        $order = Order::where('test_barcode', $this->barcode)->first();
-        if (!$order) {
-            $order = Order::where('order_barcode', $this->barcode)->first();
-        }
+        $order = Order::where('test_barcode', $this->barcode)
+            ->orWhere('order_barcode', $this->barcode)
+            ->first();
 
         return $order->order_record ?? null;
     }
 
     private function handleResult(string $inc): void
     {
-        Log::channel('analyzer_communication')->info('Result received at ' . now() . ': ' . $inc);
+        Log::channel('default_server_log')->info(now() . 'Result received: ' . $inc);
+
+        // Clean the incoming message
         $inc = $this->cleanMessage($inc);
-        Log::channel('analyzer_communication')->info('Result string: ' . $inc);
+        Log::channel('default_server_log')->info('Result string: ' . $inc);
         echo "Result received: $inc\n";
 
-//        $barcode = explode('|', $inc)[2];
-//        $barcode = preg_replace('/[^0-9]/', '', $barcode);
-//        echo "Barcode: $barcode\n";
+        // Extract data from the cleaned message
+        [, , $lis_code, $result, $unit, $ref_range] = explode('|', $inc);
 
-        $lis_code = explode('|', $inc)[2];
+        // Remove leading "^" from LIS code
         $lis_code = ltrim($lis_code, "^");
+
+        // Log extracted data
         echo "LIS code: $lis_code\n";
-
-        $result = explode('|', $inc)[3];
         echo "Result: $result\n";
-
-        $unit = explode('|', $inc)[4];
         echo "Unit: $unit\n";
-
-        $ref_range = explode('|', $inc)[5];
         echo "Reference range: $ref_range\n";
 
+        // Save the result
         $result_saved = $this->saveResult($inc);
 
+        // Handle the result saving outcome
         if ($result_saved) {
+            Log::channel('default_server_log')->info(now() . ' -> Result saved');
             $this->sendACK();
-            Log::channel('analyzer_communication')->info('Result saved at ' . now());
-            Log::channel('analyzer_communication')->info('ACK sent at ' . now());
             echo "Result saved\n";
         } else {
+            Log::channel('default_server_log')->error(now() . ' -> Result save error');
             $this->sendNAK();
-            Log::channel('analyzer_communication')->error('Result save error ' . now());
-            Log::channel('analyzer_communication')->error('NAK sent at ' . now());
             echo "Result not saved\n";
         }
     }
@@ -372,10 +437,11 @@ class DefaultServer
     private function handleOrderNotFound(): void
     {
         echo "Order requested but not found\n";
-        Log::channel('analyzer_communication')->info('Order requested but not found at ' . now());
+        Log::channel('default_server_log')->info(now() . 'Order requested but not found for barcode ' . $this->barcode);
         $this->sendENQ();
-        $inc = socket_read($this->socket, 1024);
+        $inc = socket_read($this->client_socket, 1024);
         if ($inc == self::ACK) {
+            Log::channel('default_server_log')->info(now() . 'ACK received');
             $this->sendEOT();
         }
     }
@@ -387,12 +453,10 @@ class DefaultServer
         $this->order_record = $this->prepareMessageString($this->order_record);
         $this->terminator = $this->prepareMessageString($this->getTerminator());
 
-        socket_write($this->socket, self::ENQ, strlen(self::ENQ));
-        Log::channel('analyzer_communication')->info('ENQ sent at ' . now());
-        echo "ENQ sent\n";
-        $inc = socket_read($this->socket, 1024);
+        $this->sendENQ();
+        $inc = socket_read($this->client_socket, 1024);
         if ($inc == self::ACK) {
-            Log::channel('analyzer_communication')->info('ACK received at ' . now());
+            Log::channel('default_server_log')->info(now() . ' -> ACK received');
             echo "ACK received\n";
             $this->sendMessages();
         }
@@ -443,134 +507,95 @@ class DefaultServer
 
     private function sendMessages(): void
     {
-        echo "Sending order information...\n";
         try {
-            socket_write($this->socket, $this->header, strlen($this->header));
-            Log::channel('analyzer_communication')->info('Header sent at ' . now());
-            Log::channel('analyzer_communication')->info('Header hex string: ' . $this->header);
-            echo "Header sent\n";
-            $inc = socket_read($this->socket, 1024);
-            if ($inc == self::ACK) {
-                $this->header = '';
-                Log::channel('analyzer_communication')->info('ACK received at ' . now());
-                echo "ACK received\n";
-                if ($this->order_record != '') {
-                    try {
-                        socket_write($this->socket, $this->patient, strlen($this->patient));
-                        Log::channel('analyzer_communication')->info('Patient sent at ' . now());
-                        Log::channel('analyzer_communication')->info('Patient hex string: ' . $this->patient);
-                        echo "Patient sent\n";
-                        $inc = socket_read($this->socket, 1024);
-                        if ($inc == self::ACK) {
-                            $this->patient = '';
-                            Log::channel('analyzer_communication')->info('ACK received at ' . now());
-                            echo "ACK received\n";
-                            try {
-                                socket_write($this->socket, $this->order_record, strlen($this->order_record));
-                                Log::channel('analyzer_communication')->info('Order record sent at ' . now());
-                                Log::channel('analyzer_communication')->info('Order record hex string: ' . $this->order_record);
-                                echo "Order record sent\n";
-                                $inc = socket_read($this->socket, 1024);
-                                if ($inc == self::ACK) {
-                                    $this->order_record = '';
-                                    Log::channel('analyzer_communication')->info('ACK received at ' . now());
-                                    echo "ACK received\n";
-                                    try {
-                                        socket_write($this->socket, $this->terminator, strlen($this->terminator));
-                                        Log::channel('analyzer_communication')->info('Terminator sent at ' . now());
-                                        Log::channel('analyzer_communication')->info('Terminator hex string: ' . $this->terminator);
-                                        echo "Terminator sent\n";
-                                        $inc = socket_read($this->socket, 1024);
-                                        if ($inc == self::ACK) {
-                                            $this->terminator = '';
-                                            Log::channel('analyzer_communication')->info('ACK received at ' . now());
-                                            echo "ACK received\n";
-                                            $this->sendEOT();
-                                        }
-                                    } catch (\Exception $e) {
-                                        Log::channel('analyzer_communication')->error('Terminator error: ' . $e->getMessage());
-                                        echo "Terminator error: " . $e->getMessage() . "\n";
-                                        $this->reconnect();
-                                    }
-                                }
-                            } catch (\Exception $e) {
-                                Log::channel('analyzer_communication')->error('Order record error: ' . $e->getMessage());
-                                echo "Order record error: " . $e->getMessage() . "\n";
-                                $this->reconnect();
-                            }
-                        }
-                    } catch (\Exception $e) {
-                        Log::channel('analyzer_communication')->error('Patient error: ' . $e->getMessage());
-                        echo "Patient error: " . $e->getMessage() . "\n";
-                        $this->reconnect();
-                    }
-                } else {
-                    $this->sendEOT();
-                }
+            $this->sendData($this->header);
+            $this->header = '';
+
+            if ($this->order_record != '') {
+                $this->sendData($this->patient);
+                $this->patient = '';
+
+                $this->sendData($this->order_record);
+                $this->order_record = '';
+
+                $this->sendData($this->terminator);
+                $this->terminator = '';
             }
-        } catch (\Exception $e) {
-            Log::channel('analyzer_communication')->error('Header error: ' . $e->getMessage());
-            echo "Header error: " . $e->getMessage() . "\n";
+
+            $this->sendEOT();
+        } catch (Exception $e) {
             $this->reconnect();
+        }
+    }
+
+    /**
+     * @throws Exception
+     */
+    private function sendData(string $data): void
+    {
+        socket_write($this->client_socket, $data, strlen($data));
+        $inc = socket_read($this->client_socket, 1024);
+        if ($inc != self::ACK) {
+            throw new Exception('ACK not received');
         }
     }
 
     private function cleanMessage(string $inc): string
     {
-        // remove STX from message start
-        $inc = substr($inc, 2);
-        // remove LF, CR from message end
-        $inc = substr($inc, 0, -4);
-        // remove checksum 2, checksum 1, ETX, CR
-        $inc = substr($inc, 0, -8);
+        // Remove STX from the start, LF, CR from the end, and checksum, ETX, CR
+        $inc = substr($inc, 2, -12);
         return hex2bin($inc);
     }
 
     private function reconnect(): void
     {
-        Log::channel('analyzer_communication')->error('Reconnecting at ' . now());
-        echo "Reconnecting...\n";
-        socket_close($this->socket);
-        $connected = $this->connect();
-        if ($connected) {
-            $this->process();
-        } else {
-            sleep(10);
+        Log::channel('default_server_log')->error(now() . ' -> Waiting for client to reconnect ...');
+        echo "Waiting for client to reconnect...\n";
+
+        // Close the current client socket
+        socket_close($this->client_socket);
+
+        // Wait for a new client connection
+        $this->client_socket = socket_accept($this->server_socket);
+        if ($this->client_socket === false) {
+            echo "Socket accept failed: " . socket_strerror(socket_last_error($this->server_socket)) . "\n";
+            sleep(10); // Wait before trying again
             $this->reconnect();
+        } else {
+            echo "Client reconnected\n";
+            socket_getpeername($this->client_socket, $client_ip);
+            echo "Client IP: $client_ip\n";
+            $this->process();
         }
     }
 
     private function saveResult(string $inc): bool
     {
-        $analyte_code = explode('|', $inc)[2];
+        // Destructure the exploded string into variables
+        [, , $analyte_code, $result_value, $unit, $ref_range] = explode('|', $inc);
+
+        // Remove the leading "^" from the analyte code
         $analyte_code = ltrim($analyte_code, "^");
 
+        // Find the test by analyte code and get the LIS code
         $test = Test::where('name', $analyte_code)->first();
+        $lis_code = $test ? $test->test_id : null;
 
-        if ($test) {
-            $lis_code = $test->test_id;
-        } else {
-            $lis_code = null;
-        }
-
-        $result = explode('|', $inc)[3];
-
-        $unit = explode('|', $inc)[4];
-
-        $ref_range = explode('|', $inc)[5];
-
-        $order = Order::where('test_barcode', $this->barcode)->first();
+        // Find the order by barcode
+        $order = Order::where('test_barcode', $this->barcode)->first() ?? Order::where('order_barcode', $this->barcode)->first();
 
         if (!$order) {
-            $order = Order::where('order_barcode', $this->barcode)->first();
+            Log::channel('default_server_log')->error('Order not found for barcode: ' . $this->barcode);
+            return false;
         }
 
+        // Create a new result
         $result = new Result([
-            'order_id' => $order->id ?? null,
+            'order_id' => $order->id,
             'barcode' => $this->barcode,
             'analyte_code' => $analyte_code,
             'lis_code' => $lis_code,
-            'result' => $result,
+            'result' => $result_value,
             'unit' => $unit,
             'reference_range' => $ref_range,
         ]);

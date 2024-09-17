@@ -38,7 +38,7 @@ class StartTestServerCommand extends Command
         $testServer = TestServer::getInstance();
 
         while ($counter < 10) {
-            $connection = $testServer->connect();
+            $connection = $testServer->start();
             if ($connection) {
                 break;
             }

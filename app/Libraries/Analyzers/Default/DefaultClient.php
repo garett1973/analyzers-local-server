@@ -89,6 +89,7 @@ class DefaultClient
                     }
 
                     if ($inc) {
+                        $inc = bin2hex($inc); // Convert to hex - not sure if this is necessary for all the analyzers
                         $this->handleIncomingMessage($inc);
                     }
                 }

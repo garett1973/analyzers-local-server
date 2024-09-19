@@ -55,8 +55,13 @@ class DefaultServer
 //        $ip = '192.168.1.111';
 //        $port = 9999;
 
-        $ip = '127.0.0.1';
-        $port = 12000;
+//        $ip = '62.80.253.55'; // public address
+
+//        $ip = '127.0.0.1';
+//        $port = 12000;
+
+        $ip = '192.168.0.111';
+        $port = 9999;
 
         // Create socket
         $this->server_socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
@@ -113,6 +118,7 @@ class DefaultServer
                 }
 
                 if ($inc) {
+                    $inc = bin2hex($inc); // Convert to hex - not sure if this is necessary for all the analyzers
                     $this->handleIncomingMessage($inc);
                 }
             }
@@ -204,11 +210,11 @@ class DefaultServer
     {
         echo "EOT received\n";
         Log::channel('default_server_log')->info(now() . ' -> EOT received');
+        $this->barcode = '';
         if ($this->order_requested) {
-            $this->barcode = '';
             return false;
         }
-        $this->barcode = '';
+
         return true;
     }
 
@@ -222,6 +228,10 @@ class DefaultServer
     private function sendNAK(): void
     {
         socket_write($this->client_socket, self::NAK, strlen(self::NAK));
+        $this->barcode = '';
+        $this->order_requested = false;
+        $this->order_found = false;
+        $this->receiving = true;
         Log::channel('default_server_log')->info(now() . 'NAK sent');
         echo "NAK sent\n";
     }

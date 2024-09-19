@@ -16,7 +16,6 @@ class TestServer
     private static ?TestServer $instance = null;
     private $server_socket;
     private $client_socket;
-    private $connection;
 
     public function __construct()
     {

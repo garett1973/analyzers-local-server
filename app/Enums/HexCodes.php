@@ -4,20 +4,20 @@ namespace App\Enums;
 
 enum HexCodes: string
 {
-    case SOH = "\x01";
-    case STX = "\x02";
-    case ETX = "\x03";
-    case ETB = "\x17";
-    case EOT = "\x04";
-    case ENQ = "\x05";
-    case ACK = "\x06";
-    case NAK = "\x15";
-    case LF = "\x0A";
-    case CR = "\x0D";
-    case FD = "\x7C";
-    case RD = "\x5C";
-    case VT = "\x0B";
-    case FS = "\x1C";
+    case SOH = "\x01"; // Start of Header
+    case STX = "\x02"; // Start of Text
+    case ETX = "\x03"; // End of Text
+    case ETB = "\x17"; // End of Transmission Block
+    case EOT = "\x04"; // End of Transmission
+    case ENQ = "\x05"; // Enquiry
+    case ACK = "\x06"; // Acknowledgement
+    case NAK = "\x15"; // Negative Acknowledgement
+    case LF = "\x0A"; // Line Feed
+    case CR = "\x0D"; // Carriage Return
+    case FD = "\x7C"; // Field Delimiter
+    case RD = "\x5C"; // Record Delimiter
+    case VT = "\x0B"; // Vertical Tab - start block character
+    case FS = "\x1C"; // File Separator - end block character
     case caret = "\x5E";
     case ampersand = "\x26";
 }

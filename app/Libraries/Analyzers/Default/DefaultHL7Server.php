@@ -5,6 +5,7 @@ namespace App\Libraries\Analyzers\Default;
 use App\Enums\HexCodes;
 use App\Models\Order;
 use App\Models\Result;
+use App\Models\Test;
 use Illuminate\Support\Facades\Log;
 
 class DefaultHL7Server
@@ -17,13 +18,6 @@ class DefaultHL7Server
     private static ?DefaultHL7Server $instance = null;
     private $server_socket;
     private $client_socket;
-    private bool $receiving = true;
-    private bool $order_requested = false;
-    private bool $order_found = false;
-    private string $order_record = '';
-    private string $header = '';
-    private string $patient = '';
-    private string $terminator = '';
     private string $barcode = '';
 
     public function __construct()
@@ -102,36 +96,60 @@ class DefaultHL7Server
                 break;
             }
 
-            while ($this->receiving) {
-                $inc = socket_read($this->client_socket, 1024);
+            $inc = socket_read($this->client_socket, 8192);
+//            echo "Received hex: $inc\n";
 
-                if ($inc === false) {
-                    echo "Socket read failed: " . socket_strerror(socket_last_error($this->client_socket)) . "\n";
-                    $this->handleClientDisconnection();
-                    break;
-                }
+            if ($inc === false) {
+                echo "Socket read failed: " . socket_strerror(socket_last_error($this->client_socket)) . "\n";
+                $this->handleClientDisconnection();
+                break;
+            }
 
-                if ($inc) {
-                    $message_received = $this->checkIfFullMessageReceived($inc);
-                    $message_control_id = $this->getMessageControlId($inc);
-                    if ($message_received) {
-                        $qc_message = $this->isQcMessage($inc);
-                        if ($qc_message) {
-                            $this->handleQCMessage($message_control_id);
-                        } else {
-                            $this->handleIncomingMessage($inc);
-                        }
-                    } else {
-                        $this->sendNACK($message_control_id);
-                    }
+            // Validate the hex string
+            if (!ctype_xdigit($inc) || strlen($inc) % 2 != 0) {
+                echo "Invalid hex string received: $inc\n";
+                $this->handleClientDisconnection();
+                break;
+            }
+
+            $message_received = $this->checkIfFullMessageReceived($inc);
+            if (!$message_received) {
+                $this->sendNACK();
+                continue;
+            }
+
+            $inc = $this->removeControlCharacters($inc);
+//            echo "Message without control characters: $inc\n";
+
+            // Convert hex to binary
+            $inc = hex2bin($inc);
+            if ($inc === false) {
+                echo "Hex to binary conversion failed...\n";
+                $this->handleClientDisconnection();
+                break;
+            }
+
+            // Replace <CR> with actual newline character
+            $inc = str_replace("\x0D", "\n", $inc);
+//            echo "Message in binary: $inc\n";
+
+            if ($inc) {
+                $message_control_id = $this->getMessageControlId($inc);
+
+                $qc_message = $this->isQcMessage($inc);
+                if ($qc_message) {
+                    $this->handleQCMessage($message_control_id);
+                } else {
+                    $this->handleIncomingMessage($inc);
                 }
             }
         }
     }
 
+
     private function isClientDisconnected(): bool
     {
-        echo "Checking client socket\n";
+//        echo "Checking client socket\n";
         return socket_get_option($this->client_socket, SOL_SOCKET, SO_ERROR) !== 0;
     }
 
@@ -165,13 +183,27 @@ class DefaultHL7Server
 
     private function checkIfFullMessageReceived(string $inc): bool
     {
-        $rawMessage = bin2hex($inc);
-        // Check for start and end block characters
-        if ($rawMessage[0] === "\x0B" && str_ends_with($rawMessage, "\x1C\x0D")) {
-            return true;
+        // Check if the message is wrapped with <VT> and <FS><CR>
+        if (!str_starts_with(strtoupper($inc), '0B') || !str_ends_with(strtoupper($inc), '1C0D')) {
+            echo "Received incomplete message\n";
+            return false;
         }
 
-        return false;
+        echo "Received complete message\n";
+        return true;
+    }
+
+    private function sendNACK($message_control_id = '00000000', string $type = 'P'): void
+    {
+        $nack_message = "MSH|^~\\&|LIS||||" . date('YmdHis') . "||ACK^A01|" . $message_control_id . "|" . $type . "|2.3.1\rMSA|AR|" . $message_control_id . "\r";
+        $wrapped_nack_message = self::VT . $nack_message . self::FS . self::CR;
+        socket_write($this->client_socket, $wrapped_nack_message, strlen($wrapped_nack_message));
+    }
+
+    private function removeControlCharacters(string $inc): array|string
+    {
+        // remove first 2 and last 6 characters
+        return substr($inc, 2, -6);
     }
 
     private function getMessageControlId(string $inc): string
@@ -181,6 +213,7 @@ class DefaultHL7Server
         foreach ($segments as $segment) {
             if (str_starts_with($segment, 'MSH')) {
                 $message_control_id = explode('|', $segment)[9];
+//                echo "Message control ID: $message_control_id\n";
                 break;
             }
         }
@@ -190,7 +223,7 @@ class DefaultHL7Server
 
     private function getMessageSegments($inc): array
     {
-        return explode('\r', $inc);
+        return explode("\n", $inc);
     }
 
     private function isQcMessage(string $inc): bool
@@ -208,101 +241,23 @@ class DefaultHL7Server
     {
         $ack_message = "MSH|^~\\&|LIS||||" . date('YmdHis') . "||ACK^R01|" . $message_control_id . "|" . $type . "|2.3.1\rMSA|AA|" . $message_control_id . "\r";
         $wrapped_ack_message = self::VT . $ack_message . self::FS . self::CR;
-        socket_write($this->client_socket, $wrapped_ack_message, strlen($wrapped_ack_message));
+        $hex_ack_message = bin2hex($wrapped_ack_message);
+        socket_write($this->client_socket, $hex_ack_message, strlen($hex_ack_message));
     }
 
     private function handleIncomingMessage(string $inc): void
     {
         $segments = $this->getMessageSegments($inc);
-        $message_control_id = $this->getMessageControlId($inc);
         $message_type = $this->getMessageType($segments[0]);
-
+        echo "Message type: $message_type\n";
         if ($message_type === 'ORU') {
-            $this->handleResult($segments, $message_control_id);
+            $this->handleResult($segments);
         } else {
             if ($message_type === 'ORM') {
-                $this->handleOrderRequest($segments, $message_control_id);
+                $this->handleOrderRequest($segments);
             }
         }
-    }
-
-    private function handleResult(array $segments, string $message_control_id): void
-    {
-        foreach ($segments as $segment) {
-            Log::channel('default_hl_server_log')->info(now() . ' -> ' . $segment);
-
-            if (str_starts_with('OBR', $segment)) {
-                $this->barcode = explode('|', $segment)[3];
-            }
-
-            if (str_starts_with('OBX', $segment)) {
-                $analyte_code = explode('|', $segment)[3];
-                $result_value = explode('|', $segment)[5];
-                $unit = explode('|', $segment)[6];
-                $reference_range = explode('|', $segment)[7];
-            }
-
-            $order = Order::where('test_barcode', $this->barcode)->first() ?? Order::where('order_barcode', $this->barcode)->first();
-
-            $result = new Result(
-                [
-                    'order_id' => $order ? $order->id : null,
-                    'barcode' => $this->barcode,
-                    'analyte_code' => $analyte_code,
-                    'result' => $result_value,
-                    'unit' => $unit,
-                    'reference_range' => $reference_range,
-                ]
-            );
-
-
-        }
-
-        $this->sendACK($message_control_id);
-    }
-
-    private function handleOrderRequest(array $segments, string $message_control_id): void
-    {
-        $this->barcode = '';
-        $order = null;
-        foreach ($segments as $segment) {
-            if (str_starts_with('ORC', $segment)) {
-                $this->order_requested = true;
-                $this->barcode = explode('|', $segment)[3];
-                break;
-            }
-        }
-
-        if ($this->barcode !== '') {
-            $order = Order::where('test_barcode', $this->barcode)->first();
-            if (!$order) {
-                $order = Order::where('order_barcode', $this->barcode)->first();
-            }
-        }
-
-        if ($order) {
-            $order_id = $order->id;
-            $this->sendOrderInformation($message_control_id, $order_id);
-        } else {
-            $this->sendNACK($message_control_id);
-        }
-
-        $this->sendACK($message_control_id);
-    }
-
-    private function sendOrderInformation(string $message_control_id, $order_id)
-    {
-        $message = "MSH|^~\\&|BC-5380|Mindray|||20080617143943||ORR^R02|1|P|2.3.1||||||UNICODE\r" .
-            "MSA|AA|" . $message_control_id . "\r" .
-            "ORC|Rf|" . $this->barcode . "|||CM\r" .
-            "OBR|1|SampleID1||||20060506||||tester|||Diagnose content....|20060504||||||||20080821||HM||||Validator||||Operator";
-    }
-
-    private function sendNACK($message_control_id = '00000000', string $type = 'P'): void
-    {
-        $nack_message = "MSH|^~\\&|LIS||||" . date('YmdHis') . "||ACK^A01|" . $message_control_id . "|" . $type . "|2.3.1\rMSA|AR|" . $message_control_id . "\r";
-        $wrapped_nack_message = self::VT . $nack_message . self::FS . self::CR;
-        socket_write($this->client_socket, $wrapped_nack_message, strlen($wrapped_nack_message));
+        $this->sendACK($this->getMessageControlId($inc));
     }
 
     private function getMessageType(mixed $header): string
@@ -310,6 +265,103 @@ class DefaultHL7Server
         return explode('^', explode('|', $header)[8])[0];
     }
 
+    private function handleResult(array $segments): void
+    {
+        $message_control_id = '00000000';
+        $this->barcode = '';
+        $lis_code = '';
+        foreach ($segments as $segment) {
+            Log::channel('default_hl_server_log')->info(now() . ' -> ' . $segment);
+            if (str_starts_with($segment, 'MSH')) {
+                $message_control_id = explode('|', $segment)[9];
+            }
 
+            if (str_starts_with($segment, 'OBR')) {
+                $this->barcode = explode('|', $segment)[3];
+                echo "Barcode: $this->barcode\n";
+            }
+
+            if (str_starts_with($segment, 'OBX')) {
+                $test_item_mark = explode('|', $segment)[3];
+                $analyte_code = explode('^', $test_item_mark)[1];
+                $result_value = explode('|', $segment)[5];
+                $unit = explode('|', $segment)[6];
+                $reference_range = explode('|', $segment)[7];
+
+                if (isset($analyte_code) && $analyte_code != '') {
+                    $sub_test_id = Test::where('name', $analyte_code)->first()->sub_test_id ?? null;
+                    $test_id = Test::where('name', $analyte_code)->first()->test_id ?? null;
+                    $lis_code = $sub_test_id != null ? $test_id . "-" . $sub_test_id : $test_id;
+                }
+
+                echo "Analyte code: $analyte_code\n";
+                echo "LIS code: $lis_code\n";
+                echo "Result value: $result_value\n";
+                echo "Unit: $unit\n";
+                echo "Reference range: $reference_range\n";
+
+                $result = new Result(
+                    [
+                        'barcode' => $this->barcode,
+                        'analyte_code' => $analyte_code,
+                        'lis_code' => $lis_code,
+                        'result' => $result_value,
+                        'unit' => $unit,
+                        'reference_range' => $reference_range,
+                        'original_string' => $segment,
+                    ]
+                );
+
+                $result->save();
+            }
+        }
+
+        $this->sendACK($message_control_id);
+    }
+
+    private function handleOrderRequest(array $segments): void
+    {
+        $message_control_id = '00000000';
+        $this->barcode = '';
+        $order = null;
+        foreach ($segments as $segment) {
+            if (str_starts_with($segment, 'MSH')) {
+                $message_control_id = explode('|', $segment)[9];
+                $message_processing_id = explode('|', $segment)[10];
+            }
+
+            if (str_starts_with($segment, 'ORC')) {
+                $this->barcode = explode('|', $segment)[3];
+                break;
+            }
+        }
+
+        if ($this->barcode !== '') {
+            $order = Order::where('test_barcode', $this->barcode)->first() ??
+                Order::where('order_barcode', $this->barcode)->first() ??
+                null;
+        }
+
+        if ($order) {
+            $order_id = $order->id;
+            $this->sendOrderInformation($message_control_id, $message_processing_id, $order_id);
+        } else {
+            $this->sendNACK($message_control_id);
+        }
+
+        $this->sendACK($message_control_id);
+    }
+
+    private function sendOrderInformation(string $message_control_id, string $message_processing_id, $order_id): void
+    {
+        // todo: implement order information sending
+
+//        $message = "MSH|^~\\&|BC-5380|Mindray|||20080617143943||ORR^R02|" . $message_control_id . "|" . $message_processing_id . "|2.3.1||||||UNICODE\r" .
+//            "MSA|AA|" . $message_control_id . "\r" .
+//            "ORC|AF|" . $this->barcode . "|||\r" .
+//            "OBR|1|SampleID1||||20060506||||tester|||Diagnose content....|20060504||||||||20080821||HM||||Validator||||Operator";
+//
+//        $wrapped_message = self::VT . $message . self::FS . self::CR;
+//        socket_write($this->client_socket, $wrapped_message, strlen($wrapped_message));
+    }
 }
-

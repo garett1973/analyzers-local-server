@@ -10,13 +10,13 @@ class Result extends Model
     use HasFactory;
 
     protected $fillable = [
-        'order_id',
         'barcode',
         'analyte_code',
         'lis_code',
         'result',
         'unit',
         'reference_range',
+        'original_string',
         'created_at',
         'updated_at',
     ];

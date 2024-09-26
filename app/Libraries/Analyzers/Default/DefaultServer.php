@@ -591,23 +591,15 @@ class DefaultServer
         $test = Test::where('name', $analyte_code)->first();
         $lis_code = $test ? $test->test_id : null;
 
-        // Find the order by barcode
-        $order = Order::where('test_barcode', $this->barcode)->first() ?? Order::where('order_barcode', $this->barcode)->first();
-
-        if (!$order) {
-            Log::channel('default_server_log')->error('Order not found for barcode: ' . $this->barcode);
-            return false;
-        }
-
         // Create a new result
         $result = new Result([
-            'order_id' => $order->id,
             'barcode' => $this->barcode,
             'analyte_code' => $analyte_code,
             'lis_code' => $lis_code,
             'result' => $result_value,
             'unit' => $unit,
             'reference_range' => $ref_range,
+            'original_string' => $inc,
         ]);
 
         return $result->save();

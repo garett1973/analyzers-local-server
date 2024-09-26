@@ -9,7 +9,9 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
-Route::post('/import-order', [OrderController::class, 'importOrder']);
+Route::post('/order', [OrderController::class, 'importOrder']);
+Route::post('/import-result', [ImportController::class, 'importResult']);
 Route::post('/import-tests', [ImportController::class, 'importTests']);
+Route::post('/import-analytes', [ImportController::class, 'importAnalytes']);
 Route::post('/import-analyzers', [ImportController::class, 'importAnalyzers']);
 Route::post('/import-analyzer-types', [ImportController::class, 'importAnalyzerTypes']);

@@ -20,6 +20,7 @@ return new class extends Migration
             $table->longText('result')->nullable();
             $table->string('unit')->nullable();
             $table->string('reference_range')->nullable();
+            $table->longText('original_string')->nullable();
             $table->timestamps();
         });
     }

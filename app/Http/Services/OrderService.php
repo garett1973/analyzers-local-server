@@ -24,20 +24,14 @@ class OrderService implements OrderServiceInterface
         return $this->orderRepository->getOrderString($order_data);
     }
 
-    public function processOrders(): void
-    {
-        // get unprocessed orders not older than 3 days
-        $unprocessed_orders = Order::where('status', 'unprocessed')
-            ->where('created_at', '>=', now()->subDays(3))
-            ->get();
-
-        foreach ($unprocessed_orders as $order) {
-            // todo: process order
-        }
-    }
-
     public function processOrder($order_data): string
     {
         return 'Order sent to analyzer';
+    }
+
+    public function createOrderRecord($order)
+    {
+        $analyzer = Analyzer::where('analyzer_id', $order->analyzer_id)->first();
+
     }
 }

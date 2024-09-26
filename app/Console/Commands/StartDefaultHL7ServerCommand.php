@@ -13,7 +13,7 @@ class StartDefaultHL7ServerCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'default_hl:start';
+    protected $signature = 'hl:start';
     /**
      * The console command description.
      *

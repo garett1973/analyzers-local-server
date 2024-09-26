@@ -8,7 +8,7 @@ interface OrderServiceInterface
 {
     public function getOrderString(mixed $order_data): string;
 
-    public function processOrders();
-
     public function processOrder($order_data): string;
+
+    public function createOrderRecord($order);
 }

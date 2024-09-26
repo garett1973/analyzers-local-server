@@ -13,11 +13,8 @@ class Test extends Model
 
     protected $fillable = [
         'test_id',
-        'sub_test_id',
         'analyzer_id',
         'lab_id',
-        'name',
         'description',
-        'is_active'
     ];
 }

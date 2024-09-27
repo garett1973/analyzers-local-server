@@ -6,5 +6,5 @@ use Illuminate\Http\JsonResponse;
 
 interface ResultServiceInterface
 {
-    public function createResult(array $result_data): JsonResponse;
+    public function createResult(array $result_data): bool;
 }

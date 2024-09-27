@@ -3,12 +3,11 @@
 namespace App\Console\Commands;
 
 use App\Http\Services\Interfaces\ResultServiceInterface;
-use App\Libraries\Analyzers\Default\DefaultClient;
-use App\Libraries\Analyzers\Maglumi;
+use App\Libraries\Analyzers\PremierClient;
 use Exception;
 use Illuminate\Console\Command;
 
-class ConnectAsDefaultClientCommand extends Command
+class ConnectPremierClientCommand extends Command
 {
     private ResultServiceInterface $resultService;
 
@@ -23,14 +22,14 @@ class ConnectAsDefaultClientCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'default:connect';
+    protected $signature = 'premier:connect';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Connects to the default analyzer';
+    protected $description = 'Connects to the Premier Analyzer as client';
 
     /**
      * Execute the console command.
@@ -40,7 +39,7 @@ class ConnectAsDefaultClientCommand extends Command
     {
         $counter = 0;
         $connection = false;
-        $defaultAnalyzer = DefaultClient::getInstance($this->resultService);
+        $defaultAnalyzer = PremierClient::getInstance($this->resultService);
 
         while ($counter < 10) {
             $connection = $defaultAnalyzer->connect();
@@ -52,7 +51,7 @@ class ConnectAsDefaultClientCommand extends Command
         }
 
         if ($connection) {
-            $this->info('Connected to Default Analyzer');
+            $this->info('Connected to Premier Analyzer');
             $defaultAnalyzer->process();
         }
     }

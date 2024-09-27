@@ -3,12 +3,11 @@
 namespace App\Console\Commands;
 
 use App\Http\Services\Interfaces\ResultServiceInterface;
-use App\Libraries\Analyzers\Default\DefaultClient;
-use App\Libraries\Analyzers\Maglumi;
+use App\Libraries\Analyzers\SysmexServer;
 use Exception;
 use Illuminate\Console\Command;
 
-class ConnectAsDefaultClientCommand extends Command
+class StartSysmexServerCommand extends Command
 {
     private ResultServiceInterface $resultService;
 
@@ -23,14 +22,14 @@ class ConnectAsDefaultClientCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'default:connect';
+    protected $signature = 'sysmex:start';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Connects to the default analyzer';
+    protected $description = 'Starts the server for Sysmex analyzer connection';
 
     /**
      * Execute the console command.
@@ -40,10 +39,10 @@ class ConnectAsDefaultClientCommand extends Command
     {
         $counter = 0;
         $connection = false;
-        $defaultAnalyzer = DefaultClient::getInstance($this->resultService);
+        $defaultServer = SysmexServer::getInstance($this->resultService);
 
         while ($counter < 10) {
-            $connection = $defaultAnalyzer->connect();
+            $connection = $defaultServer->start();
             if ($connection) {
                 break;
             }
@@ -52,8 +51,8 @@ class ConnectAsDefaultClientCommand extends Command
         }
 
         if ($connection) {
-            $this->info('Connected to Default Analyzer');
-            $defaultAnalyzer->process();
+            $this->info('Server for Sysmex analyzer started');
+            $defaultServer->process();
         }
     }
 }

@@ -157,6 +157,12 @@ return [
             'path' => storage_path('logs/default_hl_server.log'),
             'level' => 'debug',
         ],
+
+        'sysmex_server_log' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/sysmex_server.log'),
+            'level' => 'debug',
+        ],
     ],
 
 ];

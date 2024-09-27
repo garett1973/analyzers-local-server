@@ -3,21 +3,19 @@
 namespace App\Http\Services;
 
 use App\Http\Services\Interfaces\ResultServiceInterface;
+use App\Jobs\SendNewResultToMainServer;
 use App\Models\Result;
-use Illuminate\Http\JsonResponse;
 
 class ResultService implements ResultServiceInterface
 {
 
-    public function createResult(array $result_data): JsonResponse
+    public function createResult(array $result_data): bool
     {
         $result = new Result($result_data);
-        $result->save();
+        $saved = $result->save();
 
-        return new JsonResponse([
-            'status' => 200,
-            'message' => 'Result created successfully',
-        ],
-            200);
+        SendNewResultToMainServer::dispatch($result_data);
+
+        return $saved;
     }
 }

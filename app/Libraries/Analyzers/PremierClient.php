@@ -1,16 +1,15 @@
 <?php
 
-namespace App\Libraries\Analyzers\Default;
+namespace App\Libraries\Analyzers;
 
 use App\Enums\HexCodes;
 use App\Http\Services\Interfaces\ResultServiceInterface;
 use App\Models\Analyte;
 use App\Models\Order;
-use App\Models\Result;
 use Exception;
 use Illuminate\Support\Facades\Log;
 
-class DefaultClient
+class PremierClient
 {
     public const ACK = HexCodes::ACK->value;
     public const NAK = HexCodes::NAK->value;
@@ -21,7 +20,7 @@ class DefaultClient
     public const CR = HexCodes::CR->value;
     public const LF = HexCodes::LF->value;
 
-    private static ?DefaultClient $instance = null;
+    private static ?PremierClient $instance = null;
     private $socket;
     private $connection;
     private bool $receiving = true;
@@ -43,10 +42,10 @@ class DefaultClient
         }
     }
 
-    public static function getInstance(ResultServiceInterface $resultService): DefaultClient
+    public static function getInstance(ResultServiceInterface $resultService): PremierClient
     {
         if (self::$instance === null) {
-            self::$instance = new DefaultClient($resultService);
+            self::$instance = new PremierClient($resultService);
         }
 
         return self::$instance;
@@ -398,16 +397,12 @@ class DefaultClient
         Log::channel('default_client_log')->info('Result string: ' . $inc);
         echo "Result received: $inc\n";
 
-//    $barcode = explode('|', $inc)[2];
-//    $barcode = preg_replace('/[^0-9]/', '', $barcode);
-//    echo "Barcode: $barcode\n";
+        // Extract analyte code, result, unit, and reference range
+        [, , $analyte_code, $result, $unit, $ref_range] = explode('|', $inc);
 
-        // Extract LIS code, result, unit, and reference range
-        [, , $lis_code, $result, $unit, $ref_range] = explode('|', $inc);
-
-        // Clean LIS code
-        $lis_code = ltrim($lis_code, "^");
-        echo "LIS code: $lis_code\n";
+        // Clean analyte code
+        $analyte_code = ltrim($analyte_code, "^");
+        echo "Analyte code: $analyte_code\n";
         echo "Result: $result\n";
         echo "Unit: $unit\n";
         echo "Reference range: $ref_range\n";
@@ -567,7 +562,7 @@ class DefaultClient
     private function saveResult(string $inc): bool
     {
         // Extract data from the incoming string
-        list(, , $analyte_name, $result, $unit, $ref_range) = explode('|', $inc);
+        [, , $analyte_name, $result, $unit, $ref_range] = explode('|', $inc);
         $analyte_name = ltrim($analyte_name, "^");
 
         // Find the analyte by analyte code

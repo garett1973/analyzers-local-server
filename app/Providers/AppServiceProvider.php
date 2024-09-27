@@ -3,9 +3,14 @@
 namespace App\Providers;
 
 use App\Http\Repositories\Interfaces\OrderRepositoryInterface;
+use App\Http\Repositories\Interfaces\ResultRepositoryInterface;
 use App\Http\Repositories\OrderRepository;
+use App\Http\Repositories\ResultRepository;
 use App\Http\Services\Interfaces\OrderServiceInterface;
+use App\Http\Services\Interfaces\ResultServiceInterface;
 use App\Http\Services\OrderService;
+use App\Http\Services\ResultService;
+use App\Jobs\SendNewResultToMainServer;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -23,6 +28,16 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             OrderServiceInterface::class,
             OrderService::class
+        );
+
+        $this->app->bind(
+            ResultServiceInterface::class,
+            ResultService::class
+        );
+
+        $this->app->bind(
+            ResultRepositoryInterface::class,
+            ResultRepository::class
         );
     }
 

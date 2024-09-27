@@ -12,7 +12,7 @@ class Result extends Model
     protected $fillable = [
         'barcode',
         'analyte_code',
-        'lis_code',
+        'analyte_name',
         'result',
         'unit',
         'reference_range',

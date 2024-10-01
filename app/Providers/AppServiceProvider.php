@@ -6,6 +6,8 @@ use App\Http\Repositories\Interfaces\OrderRepositoryInterface;
 use App\Http\Repositories\Interfaces\ResultRepositoryInterface;
 use App\Http\Repositories\OrderRepository;
 use App\Http\Repositories\ResultRepository;
+use App\Http\Services\ImportService;
+use App\Http\Services\Interfaces\ImportServiceInterface;
 use App\Http\Services\Interfaces\OrderServiceInterface;
 use App\Http\Services\Interfaces\ResultServiceInterface;
 use App\Http\Services\OrderService;
@@ -38,6 +40,11 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             ResultRepositoryInterface::class,
             ResultRepository::class
+        );
+
+        $this->app->bind(
+            ImportServiceInterface::class,
+            ImportService::class
         );
     }
 

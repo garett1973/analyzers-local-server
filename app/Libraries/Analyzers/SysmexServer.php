@@ -598,10 +598,11 @@ class SysmexServer
 
         // Create a new result
         $result_data = [
+            'company_id' => env('COMPANY_ID'),
             'lab_id' => env('LAB_ID'),
-            'barcode' => $this->barcode,
+            'barcode' => ltrim($this->barcode, '0'),
             'analyte_code' => $analyte_code ?? 'N/A',
-            '$analyte_name' => $analyte_name,
+            'analyte_name' => $analyte_name,
             'result' => $result_value,
             'unit' => $unit,
             'reference_range' => $ref_range,

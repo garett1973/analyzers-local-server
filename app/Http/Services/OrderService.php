@@ -4,10 +4,8 @@ namespace App\Http\Services;
 
 use App\Http\Repositories\Interfaces\OrderRepositoryInterface;
 use App\Http\Services\Interfaces\OrderServiceInterface;
-use App\Libraries\Analyzers\Maglumi;
 use App\Models\Analyzer;
 use App\Models\AnalyzerType;
-use App\Models\Order;
 
 class OrderService implements OrderServiceInterface
 {

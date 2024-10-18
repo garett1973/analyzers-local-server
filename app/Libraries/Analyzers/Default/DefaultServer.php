@@ -582,19 +582,19 @@ class DefaultServer
     private function saveResult(string $inc): bool
     {
         // Destructure the exploded string into variables
-        [, , $analyte_code, $result_value, $unit, $ref_range] = explode('|', $inc);
+        [, , $analyte_id, $result_value, $unit, $ref_range] = explode('|', $inc);
 
         // Remove the leading "^" from the analyte code
-        $analyte_code = ltrim($analyte_code, "^");
+        $analyte_id = ltrim($analyte_id, "^");
 
         // Find the test by analyte code and get the LIS code
-        $test = Test::where('name', $analyte_code)->first();
+        $test = Test::where('name', $analyte_id)->first();
         $lis_code = $test ? $test->test_id : null;
 
         // Create a new result
         $result = new Result([
             'barcode' => $this->barcode,
-            'analyte_code' => $analyte_code,
+            'analyte_id' => $analyte_id,
             'lis_code' => $lis_code,
             'result' => $result_value,
             'unit' => $unit,

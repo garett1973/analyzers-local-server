@@ -283,18 +283,18 @@ class DefaultHL7Server
 
             if (str_starts_with($segment, 'OBX')) {
                 $test_item_mark = explode('|', $segment)[3];
-                $analyte_code = explode('^', $test_item_mark)[1];
+                $analyte_id = explode('^', $test_item_mark)[1];
                 $result_value = explode('|', $segment)[5];
                 $unit = explode('|', $segment)[6];
                 $reference_range = explode('|', $segment)[7];
 
-                if (isset($analyte_code) && $analyte_code != '') {
-                    $sub_test_id = Test::where('name', $analyte_code)->first()->sub_test_id ?? null;
-                    $test_id = Test::where('name', $analyte_code)->first()->test_id ?? null;
+                if (isset($analyte_id) && $analyte_id != '') {
+                    $sub_test_id = Test::where('name', $analyte_id)->first()->sub_test_id ?? null;
+                    $test_id = Test::where('name', $analyte_id)->first()->test_id ?? null;
                     $lis_code = $sub_test_id != null ? $test_id . "-" . $sub_test_id : $test_id;
                 }
 
-                echo "Analyte code: $analyte_code\n";
+                echo "Analyte code: $analyte_id\n";
                 echo "LIS code: $lis_code\n";
                 echo "Result value: $result_value\n";
                 echo "Unit: $unit\n";
@@ -303,7 +303,7 @@ class DefaultHL7Server
                 $result = new Result(
                     [
                         'barcode' => $this->barcode,
-                        'analyte_code' => $analyte_code,
+                        'analyte_id' => $analyte_id,
                         'lis_code' => $lis_code,
                         'result' => $result_value,
                         'unit' => $unit,

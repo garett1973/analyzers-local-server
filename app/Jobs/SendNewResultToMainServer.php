@@ -31,7 +31,6 @@ class SendNewResultToMainServer implements ShouldQueue
     {
         $main_server_url = env('MAIN_SERVER_URL') . '/api/result';
         echo 'Sending result to url: ' . $main_server_url . PHP_EOL;
-
         echo 'Result: ' . json_encode($this->result) . PHP_EOL;
 
         try {

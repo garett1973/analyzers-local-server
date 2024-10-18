@@ -572,13 +572,13 @@ class DefaultClient
 
         // Find the analyte by analyte code
         $analyte = Analyte::where('name', $analyte_name)->first();
-        $analyte_code = $analyte ? $analyte->analyte_id : null;
+        $analyte_id = $analyte ? $analyte->analyte_id : null;
 
         // Create a new result
         $result_data = [
             'lab_id' => env('LAB_ID'),
             'barcode' => $this->barcode,
-            'analyte_code' => $analyte_code ?? 'N/A',
+            'analyte_id' => $analyte_id ?? 'N/A',
             'analyte_name' => $analyte_name,
             'result' => $result,
             'unit' => $unit,

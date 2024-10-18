@@ -91,7 +91,7 @@ class PremierClient
                     }
 
                     if ($inc) {
-//                        $inc = bin2hex($inc); // Convert to hex - not sure if this is necessary for all the analyzers
+                        $inc = bin2hex($inc); // Convert to hex - not sure if this is necessary for all the analyzers
                         $this->handleIncomingMessage($inc);
                     }
                 }
@@ -398,11 +398,11 @@ class PremierClient
         echo "Result received: $inc\n";
 
         // Extract analyte code, result, unit, and reference range
-        [, , $analyte_code, $result, $unit, $ref_range] = explode('|', $inc);
+        [, , $analyte_id, $result, $unit, $ref_range] = explode('|', $inc);
 
         // Clean analyte code
-        $analyte_code = ltrim($analyte_code, "^");
-        echo "Analyte code: $analyte_code\n";
+        $analyte_id = ltrim($analyte_id, "^");
+        echo "Analyte id: $analyte_id\n";
         echo "Result: $result\n";
         echo "Unit: $unit\n";
         echo "Reference range: $ref_range\n";
@@ -567,13 +567,13 @@ class PremierClient
 
         // Find the analyte by analyte code
         $analyte = Analyte::where('name', $analyte_name)->first();
-        $analyte_code = $analyte ? $analyte->analyte_id : null;
+        $analyte_id = $analyte ? $analyte->analyte_id : null;
 
         // Create a new result
         $result_data = [
             'lab_id' => env('LAB_ID'),
             'barcode' => $this->barcode,
-            'analyte_code' => $analyte_code ?? 'N/A',
+            'analyte_id' => $analyte_id ?? 'N/A',
             'analyte_name' => $analyte_name,
             'result' => $result,
             'unit' => $unit,

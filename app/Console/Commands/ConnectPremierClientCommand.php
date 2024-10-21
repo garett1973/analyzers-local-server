@@ -39,10 +39,10 @@ class ConnectPremierClientCommand extends Command
     {
         $counter = 0;
         $connection = false;
-        $defaultAnalyzer = PremierClient::getInstance($this->resultService);
+        $premierAnalyzer = PremierClient::getInstance($this->resultService);
 
         while ($counter < 10) {
-            $connection = $defaultAnalyzer->connect();
+            $connection = $premierAnalyzer->connect();
             if ($connection) {
                 break;
             }
@@ -52,7 +52,7 @@ class ConnectPremierClientCommand extends Command
 
         if ($connection) {
             $this->info('Connected to Premier Analyzer');
-            $defaultAnalyzer->process();
+            $premierAnalyzer->process();
         }
     }
 }

@@ -163,6 +163,17 @@ return [
             'path' => storage_path('logs/sysmex_server.log'),
             'level' => 'debug',
         ],
-    ],
 
+        'premier_log' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/premier.log'),
+            'level' => 'debug',
+        ],
+
+        'sysmex_log' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/sysmex.log'),
+            'level' => 'debug',
+        ],
+    ],
 ];

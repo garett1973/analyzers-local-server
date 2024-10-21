@@ -5,7 +5,6 @@ namespace App\Libraries\Analyzers;
 use App\Enums\HexCodes;
 use App\Http\Services\Interfaces\ResultServiceInterface;
 use App\Models\Analyte;
-use App\Models\Order;
 use Exception;
 use Illuminate\Support\Facades\Log;
 
@@ -23,14 +22,8 @@ class PremierClient
     private static ?PremierClient $instance = null;
     private $socket;
     private $connection;
-    private bool $receiving = true;
-    private bool $order_requested = false;
-    private bool $order_found = false;
-    private string $order_record = '';
-    private string $header = '';
-    private string $patient = '';
-    private string $terminator = '';
     private string $barcode = '';
+    private array $results = [];
     private ResultServiceInterface $resultService;
 
     public function __construct(ResultServiceInterface $resultService)
@@ -51,62 +44,40 @@ class PremierClient
         return self::$instance;
     }
 
-    public function connect(): bool
-    {
-//        $ip = '85.206.48.46';
-//    $ip = '192.168.1.111';
-//        $port = 9999;
-
-    $ip = '127.0.0.1';
-    $port = 12000;
-
-        // Attempt to connect to the socket server
-        $this->connection = @socket_connect($this->socket, $ip, $port);
-
-        if ($this->connection === false) {
-            $errorMessage = socket_strerror(socket_last_error($this->socket));
-            echo "Socket connection failed: $errorMessage\n";
-            Log::channel('default_client_log')->error(now() . " -> Socket connection failed. Error: " . ": $errorMessage");
-            return false;
-        }
-
-        echo "Connection established\n";
-        Log::channel('default_client_log')->debug(now() . ' -> Connection to analyzer established');
-        return true;
-    }
-
     public function process(): void
     {
         while (true) {
-            if ($this->connection) {
-                $this->setSocketOptions();
-                echo "Receiving: $this->receiving\n";
+            $this->setSocketOptions();
+            while ($this->connection) {
+                $inc = @socket_read($this->socket, 1024); // Suppress error output
 
-                while ($this->receiving) {
-                    $inc = socket_read($this->socket, 1024);
-
-                    if ($inc === false) {
-                        $this->handleTimeout();
-                        break;
-                    }
-
-                    if ($inc) {
-                        $inc = bin2hex($inc); // Convert to hex - not sure if this is necessary for all the analyzers
-                        $this->handleIncomingMessage($inc);
-                    }
+                if ($inc === false || $inc === '') {
+                    $this->handleReceivingError();
+                    $this->resetFunction();
+                    continue;
                 }
 
-                echo "Receiving stopped, order was requested\n";
-                $this->handleOrderStatus();
-            } else {
-                $this->reconnect();
+                if ($inc) {
+//                    $inc = bin2hex($inc); // Convert to hex - not sure if this is necessary for all the analyzers
+                    $this->handleIncomingMessage($inc);
+                }
             }
+            $this->closeConnection();
+            $this->reconnect();
+
         }
     }
 
     private function setSocketOptions(): void
     {
+        echo "Socket options set\n";
         socket_set_option($this->socket, SOL_SOCKET, SO_RCVTIMEO, ['sec' => 15, 'usec' => 0]);
+    }
+
+    private function handleReceivingError(): void
+    {
+        $this->connection = false;
+        echo "Receiving error occurred\n";
     }
 
     private function handleIncomingMessage(string $inc): void
@@ -116,7 +87,7 @@ class PremierClient
                 $this->handleEnq();
                 break;
             case self::EOT:
-                $this->receiving = $this->handleEot();
+                $this->handleEot();
                 break;
             default:
                 $this->processDataMessage($inc);
@@ -124,11 +95,46 @@ class PremierClient
         }
     }
 
+    private function handleEnq(): void
+    {
+        echo "ENQ received\n";
+        Log::channel('premier_log')->info(now() . ' -> ENQ received');
+        $this->sendACK();
+    }
+
+    private function sendACK(): void
+    {
+        socket_write($this->socket, self::ACK, strlen(self::ACK));
+        Log::channel('premier_log')->info(now() . ' -> ACK sent');
+        echo "ACK sent\n";
+    }
+
+    private function handleEot(): void
+    {
+        echo "EOT received\n";
+        Log::channel('premier_log')->info(now() . ' -> EOT received');
+
+        $saved_results = false;
+        if (!empty($this->results)) {
+            $saved_results = $this->saveResults();
+        }
+
+        if ($saved_results) {
+            LOG::channel('premier_log')->info(now() . ' -> Results saved successfully');
+            $this->sendACK();
+        } else {
+            $this->sendNAK();
+        }
+
+        $this->barcode = '';
+        $this->results = [];
+    }
+
     private function processDataMessage(string $inc): void
     {
-        echo "Received string: $inc\n";
-//        echo "Hex: " . bin2hex($inc) . "\n";
-//        $inc = bin2hex($inc);
+//        echo "Received string: $inc\n";
+        echo "Hex: " . bin2hex($inc) . "\n";
+        $inc = bin2hex($inc);
         $header = $this->getDataMessageFirstSegment($inc);
 
         if (!$header) {
@@ -146,80 +152,13 @@ class PremierClient
             case 'O':
                 $this->handleOrder($inc);
                 break;
-            case 'Q':
-                $this->handleOrderRequest($inc);
-                break;
             case 'R':
                 $this->handleResult($inc);
-                break;
-            case 'C':
-                $this->handleComment($inc);
                 break;
             case 'L':
                 $this->handleTerminator($inc);
                 break;
         }
-    }
-
-    private function handleOrderStatus(): void
-    {
-        if (!$this->order_found) {
-            $this->handleOrderNotFound();
-        } else {
-            $this->sendOrderRecord();
-        }
-    }
-
-
-    private function handleEnq(): void
-    {
-        echo "ENQ received\n";
-        Log::channel('default_client_log')->info(now() . ' -> ENQ received');
-        $this->sendACK();
-    }
-
-    private function handleEot(): bool
-    {
-        echo "EOT received\n";
-        Log::channel('default_client_log')->info(now() . ' -> EOT received');
-        if ($this->order_requested) {
-            $this->barcode = '';
-            return false;
-        }
-        $this->barcode = '';
-        return true;
-    }
-
-    private function sendACK(): void
-    {
-        socket_write($this->socket, self::ACK, strlen(self::ACK));
-        Log::channel('default_client_log')->info(now() . ' -> ACK sent');
-        echo "ACK sent\n";
-    }
-
-    private function sendNAK(): void
-    {
-        socket_write($this->socket, self::NAK, strlen(self::NAK));
-        Log::channel('default_client_log')->info(now() . ' -> NAK sent');
-        echo "NAK sent\n";
-    }
-
-    private function sendENQ(): void
-    {
-        socket_write($this->socket, self::ENQ, strlen(self::ENQ));
-        Log::channel('default_client_log')->info(now() . ' -> ENQ sent');
-        echo "ENQ sent\n";
-    }
-
-    private function sendEOT(): void
-    {
-        $this->order_record = '';
-        $this->order_requested = false;
-        $this->receiving = true;
-        $this->barcode = '';
-        socket_write($this->socket, self::EOT, strlen(self::EOT));
-        Log::channel('default_client_log')->info(now() . ' -> EOT sent');
-        echo "EOT sent\n";
     }
 
     private function getDataMessageFirstSegment($inc): false|string
@@ -229,95 +168,8 @@ class PremierClient
             return false;
         }
 
-        // get first segment of the message
         $first_segment = explode('|', $inc)[0];
-        // remove all characters that are not letters from the first segment
         return preg_replace('/[^a-zA-Z]/', '', $first_segment);
-    }
-
-    private function handleHeader(string $inc): void
-    {
-        Log::channel('default_client_log')->info(now() . ' -> Header received: ' . $inc);
-        $inc = $this->cleanMessage($inc);
-        Log::channel('default_client_log')->info('Header string: ' . $inc);
-        echo "Header received: $inc\n";
-        $this->sendACK();
-    }
-
-    private function handlePatient(string $inc): void
-    {
-        Log::channel('default_client_log')->info(now() . ' -> Patient received: ' . $inc);
-        $inc = $this->cleanMessage($inc);
-        Log::channel('default_client_log')->info('Patient string: ' . $inc);
-        echo "Patient data received: $inc\n";
-        $this->sendACK();
-    }
-
-    private function handleOrder(string $inc): void
-    {
-        Log::channel('default_client_log')->info(now() . ' -> Order received: ' . $inc);
-        $inc = $this->cleanMessage($inc);
-        Log::channel('default_client_log')->info('Order string: ' . $inc);
-        echo "Order data received: $inc\n";
-
-        $this->barcode = explode('|', $inc)[3];
-        $this->barcode = preg_replace('/[^0-9]/', '', $this->barcode);
-        echo "Barcode from order string in results: $this->barcode\n";
-
-        $this->sendACK();
-    }
-
-    private function handleOrderRequest(string $inc): void
-    {
-        $this->order_requested = true;
-        Log::channel('default_client_log')->info(now() . ' -> Order request received: ' . $inc);
-
-        // Clean the incoming message
-        $inc = $this->cleanMessage($inc);
-        Log::channel('default_client_log')->info('Order request string: ' . $inc);
-        echo "Order request received: $inc\n";
-
-        // Extract and clean the barcode
-        $this->barcode = $this->extractBarcode($inc);
-        echo "Barcode from request string in order request: $this->barcode\n";
-
-        // Retrieve the order record
-        $this->order_record = $this->getOrderString();
-        $this->order_found = (bool) $this->order_record;
-
-        if ($this->order_found) {
-            echo "Order string: $this->order_record\n";
-        } else {
-            echo "Order not found\n";
-        }
-
-        // Send acknowledgment
-        $this->sendACK();
-    }
-
-    private function extractBarcode(string $inc): string
-    {
-        $barcode = explode('|', $inc)[2];
-        return preg_replace('/[^0-9]/', '', $barcode);
-    }
-
-
-    private function handleComment(string $inc): void
-    {
-        Log::channel('default_client_log')->info(now() . ' -> Comment received: ' . $inc);
-        $inc = $this->cleanMessage($inc);
-        Log::channel('default_client_log')->info('Comment string: ' . $inc);
-        echo "Comment received: $inc\n";
-        $this->sendACK();
-    }
-
-    private function handleTerminator(string $inc): void
-    {
-        Log::channel('default_client_log')->info(now() . ' -> Terminator received: ' . $inc);
-        $inc = $this->cleanMessage($inc);
-        Log::channel('default_client_log')->info('Terminator string: ' . $inc);
-        echo "Terminator received: $inc\n";
-        $this->sendACK();
     }
 
     private function processMessage(string $inc): ?string
@@ -343,11 +195,7 @@ class PremierClient
     private function prepareMessageForChecksum(string $inc): string
     {
         // Remove STX from message start and LF, CR, checksum from message end
-        $inc = substr($inc, 2);
-        $inc = substr($inc, 0, -8);
-        Log::channel('default_client_log')->info('Message for checksum calculation: ' . $inc);
-        echo "Message for checksum calculation: $inc\n";
-        return $inc;
+        return substr(substr($inc, 2), 0, -8);
     }
 
     private function isChecksumValid(string $inc, string $checksum): bool
@@ -362,175 +210,19 @@ class PremierClient
             return false;
         }
 
-        echo "Checksum OK\n";
         return true;
     }
 
     private function calculateChecksum(string $inc): string
     {
         $hexArray = str_split($inc, 2);
-        $checksum = array_reduce($hexArray, function($carry, $hex) {
+        $checksum = array_reduce($hexArray, function ($carry, $hex) {
             return $carry + hexdec($hex);
         }, 0);
 
         $checksum &= 0xFF;
         return strtoupper(dechex($checksum));
     }
-
-
-    private function getOrderString(): ?string
-    {
-        $order = Order::where('test_barcode', $this->barcode)->first();
-        if (!$order) {
-            $order = Order::where('order_barcode', $this->barcode)->first();
-        }
-
-        return $order->order_record ?? null;
-    }
-
-    private function handleResult(string $inc): void
-    {
-        Log::channel('default_client_log')->info(now() . 'Result received: ' . $inc);
-
-        // Clean the incoming message
-        $inc = $this->cleanMessage($inc);
-        Log::channel('default_client_log')->info('Result string: ' . $inc);
-        echo "Result received: $inc\n";
-
-        // Extract analyte code, result, unit, and reference range
-        [, , $analyte_id, $result, $unit, $ref_range] = explode('|', $inc);
-
-        // Clean analyte code
-        $analyte_id = ltrim($analyte_id, "^");
-        echo "Analyte id: $analyte_id\n";
-        echo "Result: $result\n";
-        echo "Unit: $unit\n";
-        echo "Reference range: $ref_range\n";
-
-        // Save the result
-        $result_saved = $this->saveResult($inc);
-
-        // Handle the result saving outcome
-        if ($result_saved) {
-            Log::channel('default_client_log')->info(now() . ' -> Result saved');
-            $this->sendACK();
-            echo "Result saved\n";
-        } else {
-            Log::channel('default_client_log')->error(now() . ' -> Result save error');
-            $this->sendNAK();
-            echo "Result not saved\n";
-        }
-    }
-
-
-    private function handleOrderNotFound(): void
-    {
-        echo "Order requested but not found\n";
-        Log::channel('default_client_log')->info(now() . 'Order requested but not found for barcode ' . $this->barcode);
-        $this->sendENQ();
-        $inc = socket_read($this->socket, 1024);
-        if ($inc == self::ACK) {
-            Log::channel('default_client_log')->info(now() . 'ACK received');
-            $this->sendEOT();
-        }
-    }
-
-    private function sendOrderRecord(): void
-    {
-        $this->header = $this->prepareMessageString($this->getShortHeader());
-        $this->patient = $this->prepareMessageString($this->getPatient());
-        $this->order_record = $this->prepareMessageString($this->order_record);
-        $this->terminator = $this->prepareMessageString($this->getTerminator());
-
-        $this->sendENQ();
-        $inc = socket_read($this->socket, 1024);
-        if ($inc == self::ACK) {
-            Log::channel('default_client_log')->info(now() . 'ACK received');
-            echo "ACK received\n";
-            $this->sendMessages();
-        }
-    }
-
-    private function prepareMessageString(string $message): string
-    {
-        // Append control characters and calculate checksum
-        $message .= self::CR . self::ETX;
-        $checksum = $this->getChecksum($message);
-        $checksum = str_pad($checksum, 2, '0', STR_PAD_LEFT);
-
-        echo "Checksum: $checksum\n";
-
-        // Append checksum and final control characters
-        $message .= $checksum . self::CR . self::LF;
-        $message = self::STX . $message;
-        echo "Message to send: $message\n";
-
-        // Convert message to hexadecimal representation
-        return strtoupper(bin2hex($message));
-    }
-
-    private function getChecksum(string $message): string
-    {
-        $checksum = 0;
-        for ($i = 0, $iMax = strlen($message); $i < $iMax; $i++) {
-            $checksum += ord($message[$i]);
-        }
-        $checksum %= 256;
-        $checksum &= 0xFF;
-        return strtoupper(dechex($checksum));
-    }
-
-
-    private function getShortHeader(): string
-    {
-        return 'H|\^&';
-    }
-
-    private function getPatient(): string
-    {
-        return 'P|1';
-    }
-
-    private function getTerminator(): string
-    {
-        return 'L|1|F';
-    }
-
-    private function sendMessages(): void
-    {
-        try {
-            $this->sendMessage($this->header);
-            $this->header = '';
-
-            if (!empty($this->order_record)) {
-                $this->sendMessage($this->patient);
-                $this->patient = '';
-
-                $this->sendMessage($this->order_record);
-                $this->order_record = '';
-
-                $this->sendMessage($this->terminator);
-                $this->terminator = '';
-            }
-            $this->sendEOT();
-        } catch (Exception $e) {
-            $this->reconnect();
-        }
-    }
-
-    /**
-     * @throws Exception
-     */
-    private function sendMessage(string $message): void
-    {
-        socket_write($this->socket, $message, strlen($message));
-        $inc = socket_read($this->socket, 1024);
-
-        if ($inc !== self::ACK) {
-            throw new Exception('ACK not received');
-        }
-    }
-
 
     private function cleanMessage(string $inc): string
     {
@@ -540,52 +232,153 @@ class PremierClient
         // Remove LF, CR, checksum, ETX, CR from the end
         $inc = substr($inc, 0, -12);
 
-        // Convert the cleaned message from hex to binary
         return hex2bin($inc);
     }
 
-
-    private function reconnect(): void
+    private function sendNAK(): void
     {
-        Log::channel('default_client_log')->error(now() . 'Reconnecting...');
-        echo "Reconnecting...\n";
-        socket_close($this->socket);
-        $connected = $this->connect();
-        if ($connected) {
-            $this->process();
-        } else {
-            sleep(10);
-            $this->reconnect();
-        }
+        socket_write($this->socket, self::NAK, strlen(self::NAK));
+        Log::channel('premier_log')->info(now() . ' -> NAK sent');
+        echo "NAK sent\n";
     }
 
-    private function saveResult(string $inc): bool
+    private function handleHeader(string $inc): void
     {
-        // Extract data from the incoming string
-        [, , $analyte_name, $result, $unit, $ref_range] = explode('|', $inc);
+        Log::channel('premier_log')->info(now() . ' -> Header received: ' . $inc);
+        $inc = $this->cleanMessage($inc);
+        Log::channel('premier_log')->info('Header string: ' . $inc);
+        echo "Header received: $inc\n";
+        $this->sendACK();
+    }
+
+    private function handlePatient(string $inc): void
+    {
+        Log::channel('premier_log')->info(now() . ' -> Patient received: ' . $inc);
+        $inc = $this->cleanMessage($inc);
+        Log::channel('premier_log')->info('Patient string: ' . $inc);
+        echo "Patient data received: $inc\n";
+        $this->sendACK();
+    }
+
+    private function handleOrder(string $inc): void
+    {
+        Log::channel('premier_log')->info(now() . ' -> Order received: ' . $inc);
+        $inc = $this->cleanMessage($inc);
+        Log::channel('premier_log')->info('Order string: ' . $inc);
+        echo "Order data received: $inc\n";
+
+        $this->barcode = explode('|', $inc)[3];
+        $this->barcode = preg_replace('/[^0-9]/', '', $this->barcode);
+        echo "Barcode from order string in results: $this->barcode\n";
+
+        $this->sendACK();
+    }
+
+    private function handleResult(string $inc): void
+    {
+        Log::channel('premier_log')->info(now() . 'Result received: ' . $inc);
+        $inc = $this->cleanMessage($inc);
+        Log::channel('premier_log')->info('Result string: ' . $inc);
+        echo "Result received: $inc\n";
+
+        [, , $analyte_name, $result, $unit] = explode('|', $inc);
         $analyte_name = ltrim($analyte_name, "^");
 
-        // Find the analyte by analyte code
         $analyte = Analyte::where('name', $analyte_name)->first();
         $analyte_id = $analyte ? $analyte->analyte_id : null;
 
-        // Create a new result
+        if (!$analyte_id) {
+            Log::channel('premier_log')->error(now() . ' -> Analyte ID for analyte ' . $analyte_name . ' not found');
+            echo "Analyte ID for $analyte_name not found\n";
+            $this->sendACK();
+            return;
+        }
+
         $result_data = [
             'lab_id' => env('LAB_ID'),
             'barcode' => $this->barcode,
-            'analyte_id' => $analyte_id ?? 'N/A',
+            'analyte_id' => $analyte_id,
             'analyte_name' => $analyte_name,
             'result' => $result,
             'unit' => $unit,
-            'reference_range' => $ref_range,
             'original_string' => $inc,
         ];
 
-        return $this->resultService->createResult($result_data);
+        $this->results[] = $result_data;
+        $this->sendACK();
+
+        echo "Result data added to results\n";
     }
 
-    private function handleTimeout(): void
+    private function saveResults(): bool
     {
-        echo "Timeout occurred\n";
+        $saved_results = true;
+
+        foreach ($this->results as $result_data) {
+            $saved_results = $this->resultService->createResult($result_data);
+            if (!$saved_results) {
+                break;
+            }
+        }
+
+        return $saved_results;
+    }
+
+    private function handleTerminator(string $inc): void
+    {
+        Log::channel('premier_log')->info(now() . ' -> Terminator received: ' . $inc);
+        $inc = $this->cleanMessage($inc);
+        Log::channel('premier_log')->info('Terminator string: ' . $inc);
+        echo "Terminator received: $inc\n";
+        $this->sendACK();
+    }
+
+    public function closeConnection(): void
+    {
+        if ($this->socket) {
+            socket_close($this->socket);
+            $this->socket = null;
+        }
+        $this->connection = false;
+    }
+
+    private function reconnect(): void
+    {
+        Log::channel('premier_log')->error(now() . ' Reconnecting...');
+        echo "Reconnecting...\n";
+        if ($this->socket) {
+            socket_close($this->socket);
+        }
+        $this->socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP); // Recreate socket
+
+        while (!$this->connect()) {
+            sleep(10);
+        }
+    }
+
+    public function connect(): bool
+    {
+//        $ip = '85.206.48.46';
+//        $ip = '192.168.1.111';
+//        $port = 9999;
+
+        $ip = '127.0.0.1';
+        $port = 12000;
+
+        $this->connection = @socket_connect($this->socket, $ip, $port);
+        if ($this->connection === false) {
+            $errorMessage = socket_strerror(socket_last_error($this->socket));
+            echo "Socket connection failed: $errorMessage\n";
+            Log::channel('premier_log')->error(now() . " -> Socket connection failed. Error: " . $errorMessage);
+            return false;
+        }
+        echo "Connection established\n";
+        Log::channel('premier_log')->debug(now() . ' -> Connection to analyzer established');
+        return true;
+    }
+
+    private function resetFunction(): void
+    {
+        $this->results = [];
     }
 }

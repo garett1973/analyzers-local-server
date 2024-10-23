@@ -15,8 +15,8 @@ class Result extends Model
         'analyte_name',
         'result',
         'unit',
-        'reference_range',
         'original_string',
+        'updated',
         'created_at',
         'updated_at',
     ];

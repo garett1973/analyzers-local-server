@@ -98,21 +98,21 @@ class PremierClient
     private function handleEnq(): void
     {
         echo "ENQ received\n";
-        Log::channel('premier_log')->info(now() . ' -> ENQ received');
+        Log::channel('premier_log')->info(' -> ENQ received');
         $this->sendACK();
     }
 
     private function sendACK(): void
     {
         socket_write($this->socket, self::ACK, strlen(self::ACK));
-        Log::channel('premier_log')->info(now() . ' -> ACK sent');
+        Log::channel('premier_log')->info(' -> ACK sent');
         echo "ACK sent\n";
     }
 
     private function handleEot(): void
     {
         echo "EOT received\n";
-        Log::channel('premier_log')->info(now() . ' -> EOT received');
+        Log::channel('premier_log')->info(' -> EOT received');
 
         $saved_results = false;
         if (!empty($this->results)) {
@@ -120,7 +120,7 @@ class PremierClient
         }
 
         if ($saved_results) {
-            LOG::channel('premier_log')->info(now() . ' -> Results saved successfully');
+            LOG::channel('premier_log')->info(' -> Results saved successfully');
             $this->sendACK();
         } else {
             $this->sendNAK();
@@ -238,33 +238,33 @@ class PremierClient
     private function sendNAK(): void
     {
         socket_write($this->socket, self::NAK, strlen(self::NAK));
-        Log::channel('premier_log')->info(now() . ' -> NAK sent');
+        Log::channel('premier_log')->info(' -> NAK sent');
         echo "NAK sent\n";
     }
 
     private function handleHeader(string $inc): void
     {
-        Log::channel('premier_log')->info(now() . ' -> Header received: ' . $inc);
+        Log::channel('premier_log')->info(' -> Header received: ' . $inc);
         $inc = $this->cleanMessage($inc);
-        Log::channel('premier_log')->info('Header string: ' . $inc);
+        Log::channel('premier_log')->info(' -> Header string: ' . $inc);
         echo "Header received: $inc\n";
         $this->sendACK();
     }
 
     private function handlePatient(string $inc): void
     {
-        Log::channel('premier_log')->info(now() . ' -> Patient received: ' . $inc);
+        Log::channel('premier_log')->info(' -> Patient received: ' . $inc);
         $inc = $this->cleanMessage($inc);
-        Log::channel('premier_log')->info('Patient string: ' . $inc);
+        Log::channel('premier_log')->info(' -> Patient string: ' . $inc);
         echo "Patient data received: $inc\n";
         $this->sendACK();
     }
 
     private function handleOrder(string $inc): void
     {
-        Log::channel('premier_log')->info(now() . ' -> Order received: ' . $inc);
+        Log::channel('premier_log')->info(' -> Order received: ' . $inc);
         $inc = $this->cleanMessage($inc);
-        Log::channel('premier_log')->info('Order string: ' . $inc);
+        Log::channel('premier_log')->info(' -> Order string: ' . $inc);
         echo "Order data received: $inc\n";
 
         $this->barcode = explode('|', $inc)[3];
@@ -276,23 +276,16 @@ class PremierClient
 
     private function handleResult(string $inc): void
     {
-        Log::channel('premier_log')->info(now() . 'Result received: ' . $inc);
+        Log::channel('premier_log')->info(' -> Result received: ' . $inc);
         $inc = $this->cleanMessage($inc);
-        Log::channel('premier_log')->info('Result string: ' . $inc);
+        Log::channel('premier_log')->info(' -> Result string: ' . $inc);
         echo "Result received: $inc\n";
 
         [, , $analyte_name, $result, $unit] = explode('|', $inc);
         $analyte_name = ltrim($analyte_name, "^");
 
         $analyte = Analyte::where('name', $analyte_name)->first();
-        $analyte_id = $analyte ? $analyte->analyte_id : null;
-
-        if (!$analyte_id) {
-            Log::channel('premier_log')->error(now() . ' -> Analyte ID for analyte ' . $analyte_name . ' not found');
-            echo "Analyte ID for $analyte_name not found\n";
-            $this->sendACK();
-            return;
-        }
+        $analyte_id = $analyte ? $analyte->analyte_id : 'N/A';
 
         $result_data = [
             'lab_id' => env('LAB_ID'),
@@ -306,8 +299,6 @@ class PremierClient
 
         $this->results[] = $result_data;
         $this->sendACK();
-
-        echo "Result data added to results\n";
     }
 
     private function saveResults(): bool
@@ -326,9 +317,9 @@ class PremierClient
 
     private function handleTerminator(string $inc): void
     {
-        Log::channel('premier_log')->info(now() . ' -> Terminator received: ' . $inc);
+        Log::channel('premier_log')->info(' -> Terminator received: ' . $inc);
         $inc = $this->cleanMessage($inc);
-        Log::channel('premier_log')->info('Terminator string: ' . $inc);
+        Log::channel('premier_log')->info(' -> Terminator string: ' . $inc);
         echo "Terminator received: $inc\n";
         $this->sendACK();
     }
@@ -344,7 +335,7 @@ class PremierClient
 
     private function reconnect(): void
     {
-        Log::channel('premier_log')->error(now() . ' Reconnecting...');
+        Log::channel('premier_log')->error(' Reconnecting...');
         echo "Reconnecting...\n";
         if ($this->socket) {
             socket_close($this->socket);
@@ -363,17 +354,18 @@ class PremierClient
 //        $port = 9999;
 
         $ip = '127.0.0.1';
+        $ip = '192.168.0.111';
         $port = 12000;
 
         $this->connection = @socket_connect($this->socket, $ip, $port);
         if ($this->connection === false) {
             $errorMessage = socket_strerror(socket_last_error($this->socket));
             echo "Socket connection failed: $errorMessage\n";
-            Log::channel('premier_log')->error(now() . " -> Socket connection failed. Error: " . $errorMessage);
+            Log::channel('premier_log')->error(" -> Socket connection failed. Error: " . $errorMessage);
             return false;
         }
         echo "Connection established\n";
-        Log::channel('premier_log')->debug(now() . ' -> Connection to analyzer established');
+        Log::channel('premier_log')->debug(' -> Connection to analyzer established');
         return true;
     }
 

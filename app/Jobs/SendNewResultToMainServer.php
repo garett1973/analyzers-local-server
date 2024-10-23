@@ -34,14 +34,12 @@ class SendNewResultToMainServer implements ShouldQueue
         echo 'Result: ' . json_encode($this->result) . PHP_EOL;
 
         try {
-            $response = Http::post($main_server_url, $this->result);
-//            echo 'Response: ' . $response->body() . PHP_EOL;
+            $response = Http::withOptions(['verify' => false])->post($main_server_url, $this->result);
             $response = json_decode($response->body(), true);
 
             if (isset($response['error'])) {
                 echo 'Error: ' . $response['error'] . PHP_EOL;
             }
-
             if (isset($response['status']) && $response['status'] == 'success') {
                 echo 'Result sent successfully.' . PHP_EOL;
             }
@@ -49,4 +47,5 @@ class SendNewResultToMainServer implements ShouldQueue
             echo 'Error: ' . $e->getMessage() . PHP_EOL;
         }
     }
+
 }

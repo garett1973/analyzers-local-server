@@ -286,9 +286,7 @@ class SysmexServer
     private function handleOrder(string $inc): void
     {
         $this->logAndProcessMessage('Order', $inc);
-        echo "Order string: $inc\n";
         $inc = $this->cleanMessage($inc);
-        echo "Cleaned order string: $inc\n";
         $this->barcode = preg_replace('/[^0-9]/', '', explode('^', explode('|', $inc)[3])[2]);
         echo "Barcode from order string in results: $this->barcode\n";
     }

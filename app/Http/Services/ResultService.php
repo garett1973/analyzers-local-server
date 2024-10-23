@@ -29,6 +29,8 @@ class ResultService implements ResultServiceInterface
             return true;
         }
 
+        $result_data['lab_id'] = env('COMPANY_ID') . '-' . $result_data['lab_id'];
+
         $result = new Result($result_data);
         $saved = $result->save();
 

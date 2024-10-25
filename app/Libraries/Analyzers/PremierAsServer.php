@@ -8,7 +8,7 @@ use App\Models\Analyte;
 use Exception;
 use Illuminate\Support\Facades\Log;
 
-class PremierClient
+class PremierAsServer
 {
     public const ACK = HexCodes::ACK->value;
     public const NAK = HexCodes::NAK->value;
@@ -19,7 +19,7 @@ class PremierClient
     public const CR = HexCodes::CR->value;
     public const LF = HexCodes::LF->value;
 
-    private static ?PremierClient $instance = null;
+    private static ?PremierAsServer $instance = null;
     private $socket;
     private $connection;
     private string $barcode = '';
@@ -35,10 +35,10 @@ class PremierClient
         }
     }
 
-    public static function getInstance(ResultServiceInterface $resultService): PremierClient
+    public static function getInstance(ResultServiceInterface $resultService): PremierAsServer
     {
         if (self::$instance === null) {
-            self::$instance = new PremierClient($resultService);
+            self::$instance = new PremierAsServer($resultService);
         }
 
         return self::$instance;
@@ -132,7 +132,7 @@ class PremierClient
 
     private function processDataMessage(string $inc): void
     {
-//        echo "Received string: $inc\n";
+        echo "Received string: $inc\n";
         echo "Hex: " . bin2hex($inc) . "\n";
         $inc = bin2hex($inc);
         $header = $this->getDataMessageFirstSegment($inc);

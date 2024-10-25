@@ -1,26 +1,43 @@
 <?php
 
-namespace App\Libraries\Analyzers\Default;
+namespace App\Libraries\Analyzers;
 
 use App\Enums\HexCodes;
+use App\Http\Services\Interfaces\ResultServiceInterface;
+use App\Models\Analyte;
 use App\Models\Order;
 use App\Models\Result;
 use App\Models\Test;
 use Illuminate\Support\Facades\Log;
 
-class DefaultHL7Server
+class MindrayAsClient
 {
     public const VT = HexCodes::VT->value;
     public const FS = HexCodes::FS->value;
     public const CR = HexCodes::CR->value;
     public const LF = HexCodes::LF->value;
 
-    private static ?DefaultHL7Server $instance = null;
+    private static ?MindrayAsClient $instance = null;
     private $server_socket;
     private $client_socket;
     private string $barcode = '';
+    private ResultServiceInterface $resultService;
 
-    public function __construct()
+    public function __construct(ResultServiceInterface $resultService)
+    {
+        $this->resultService = $resultService;
+        $this->createServerSocket();
+    }
+
+    public static function getInstance(ResultServiceInterface $resultService): MindrayAsClient
+    {
+        if (self::$instance === null) {
+            self::$instance = new MindrayAsClient($resultService);
+        }
+        return self::$instance;
+    }
+
+    private function createServerSocket(): void
     {
         $this->server_socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
         if ($this->server_socket === false) {
@@ -28,17 +45,6 @@ class DefaultHL7Server
         }
     }
 
-    public static function getInstance(): DefaultHL7Server
-    {
-        if (self::$instance === null) {
-            self::$instance = new DefaultHL7Server();
-        }
-
-        return self::$instance;
-    }
-
-    public function start(): bool
-    {
 //        $ip = '85.206.48.46';
 //        $ip = '192.168.1.111';
 //        $port = 9999;
@@ -48,48 +54,53 @@ class DefaultHL7Server
 //        $ip = '127.0.0.1';
 //        $port = 12000;
 
+    public function start(): bool
+    {
         $ip = '192.168.0.111';
-        $port = 9999;
+        $port = 12000;
 
-        // Create socket
-        $this->server_socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
-        if ($this->server_socket === false) {
-            echo "Socket creation failed: " . socket_strerror(socket_last_error()) . "\n";
+        if (!$this->bindSocket($ip, $port) || !$this->listenOnSocket()) {
             return false;
         }
 
-        // Bind socket
+        $this->acceptClientConnection();
+        return true;
+    }
+
+    private function bindSocket(string $ip, int $port): bool
+    {
         if (socket_bind($this->server_socket, $ip, $port) === false) {
             echo "Socket bind failed: " . socket_strerror(socket_last_error($this->server_socket)) . "\n";
             return false;
         }
+        return true;
+    }
 
-        // Listen on socket
+    private function listenOnSocket(): bool
+    {
         if (socket_listen($this->server_socket, 5) === false) {
             echo "Socket listen failed: " . socket_strerror(socket_last_error($this->server_socket)) . "\n";
             return false;
         }
+        echo "Socket server started\n";
+        return true;
+    }
 
-        echo "Socket server started on $ip:$port\n";
-
-        // Accept client connection
+    private function acceptClientConnection(): void
+    {
         $this->client_socket = socket_accept($this->server_socket);
         if ($this->client_socket === false) {
             echo "Socket accept failed: " . socket_strerror(socket_last_error($this->server_socket)) . "\n";
-            return false;
+            return;
         }
 
-        echo "Client connected\n";
         socket_getpeername($this->client_socket, $client_ip);
-        echo "Client IP: $client_ip\n";
-
-        return true;
+        echo "Client connected, IP: $client_ip\n";
     }
 
     public function process(): void
     {
         while (true) {
-            // Check if the client socket is still connected
             if ($this->isClientDisconnected()) {
                 echo "Client socket error\n";
                 $this->handleClientDisconnection();
@@ -97,8 +108,6 @@ class DefaultHL7Server
             }
 
             $inc = socket_read($this->client_socket, 8192);
-//            echo "Received hex: $inc\n";
-
             if ($inc === false) {
                 echo "Socket read failed: " . socket_strerror(socket_last_error($this->client_socket)) . "\n";
                 $this->handleClientDisconnection();
@@ -112,14 +121,12 @@ class DefaultHL7Server
                 break;
             }
 
-            $message_received = $this->checkIfFullMessageReceived($inc);
-            if (!$message_received) {
+            if (!$this->checkIfFullMessageReceived($inc)) {
                 $this->sendNACK();
                 continue;
             }
 
             $inc = $this->removeControlCharacters($inc);
-//            echo "Message without control characters: $inc\n";
 
             // Convert hex to binary
             $inc = hex2bin($inc);
@@ -128,16 +135,13 @@ class DefaultHL7Server
                 $this->handleClientDisconnection();
                 break;
             }
-
             // Replace <CR> with actual newline character
             $inc = str_replace("\x0D", "\n", $inc);
-//            echo "Message in binary: $inc\n";
 
             if ($inc) {
                 $message_control_id = $this->getMessageControlId($inc);
 
-                $qc_message = $this->isQcMessage($inc);
-                if ($qc_message) {
+                if ($this->isQcMessage($inc)) {
                     $this->handleQCMessage($message_control_id);
                 } else {
                     $this->handleIncomingMessage($inc);
@@ -146,28 +150,20 @@ class DefaultHL7Server
         }
     }
 
-
     private function isClientDisconnected(): bool
     {
-//        echo "Checking client socket\n";
         return socket_get_option($this->client_socket, SOL_SOCKET, SO_ERROR) !== 0;
     }
 
     private function handleClientDisconnection(): void
     {
-        // Implement reconnection logic or cleanup here
         $this->reconnect();
     }
 
     private function reconnect(): void
     {
-        Log::channel('default_hl_server_log')->error(now() . ' -> Waiting for client to reconnect ...');
-        echo "Waiting for client to reconnect...\n";
-
-        // Close the current client socket
+        Log::channel('mindray_log')->error(' -> Waiting for client to reconnect ...');
         socket_close($this->client_socket);
-
-        // Wait for a new client connection
         $this->client_socket = socket_accept($this->server_socket);
         if ($this->client_socket === false) {
             echo "Socket accept failed: " . socket_strerror(socket_last_error($this->server_socket)) . "\n";
@@ -183,14 +179,7 @@ class DefaultHL7Server
 
     private function checkIfFullMessageReceived(string $inc): bool
     {
-        // Check if the message is wrapped with <VT> and <FS><CR>
-        if (!str_starts_with(strtoupper($inc), '0B') || !str_ends_with(strtoupper($inc), '1C0D')) {
-            echo "Received incomplete message\n";
-            return false;
-        }
-
-        echo "Received complete message\n";
-        return true;
+        return str_starts_with(strtoupper($inc), '0B') && str_ends_with(strtoupper($inc), '1C0D');
     }
 
     private function sendNACK($message_control_id = '00000000', string $type = 'P'): void
@@ -202,23 +191,17 @@ class DefaultHL7Server
 
     private function removeControlCharacters(string $inc): array|string
     {
-        // remove first 2 and last 6 characters
         return substr($inc, 2, -6);
     }
 
     private function getMessageControlId(string $inc): string
     {
-        $segments = $this->getMessageSegments($inc);
-        $message_control_id = '00000000';
-        foreach ($segments as $segment) {
+        foreach ($this->getMessageSegments($inc) as $segment) {
             if (str_starts_with($segment, 'MSH')) {
-                $message_control_id = explode('|', $segment)[9];
-//                echo "Message control ID: $message_control_id\n";
-                break;
+                return explode('|', $segment)[9];
             }
         }
-
-        return $message_control_id;
+        return '00000000';
     }
 
     private function getMessageSegments($inc): array
@@ -241,8 +224,7 @@ class DefaultHL7Server
     {
         $ack_message = "MSH|^~\\&|LIS||||" . date('YmdHis') . "||ACK^R01|" . $message_control_id . "|" . $type . "|2.3.1\rMSA|AA|" . $message_control_id . "\r";
         $wrapped_ack_message = self::VT . $ack_message . self::FS . self::CR;
-        $hex_ack_message = bin2hex($wrapped_ack_message);
-        socket_write($this->client_socket, $hex_ack_message, strlen($hex_ack_message));
+        socket_write($this->client_socket, bin2hex($wrapped_ack_message), strlen($wrapped_ack_message));
     }
 
     private function handleIncomingMessage(string $inc): void
@@ -250,13 +232,13 @@ class DefaultHL7Server
         $segments = $this->getMessageSegments($inc);
         $message_type = $this->getMessageType($segments[0]);
         echo "Message type: $message_type\n";
+
         if ($message_type === 'ORU') {
             $this->handleResult($segments);
-        } else {
-            if ($message_type === 'ORM') {
-                $this->handleOrderRequest($segments);
-            }
+        } elseif ($message_type === 'ORM') {
+            $this->handleOrderRequest($segments);
         }
+
         $this->sendACK($this->getMessageControlId($inc));
     }
 
@@ -269,9 +251,10 @@ class DefaultHL7Server
     {
         $message_control_id = '00000000';
         $this->barcode = '';
-        $lis_code = '';
+
         foreach ($segments as $segment) {
-            Log::channel('default_hl_server_log')->info(now() . ' -> ' . $segment);
+            Log::channel('mindray_log')->info(' -> ' . $segment);
+
             if (str_starts_with($segment, 'MSH')) {
                 $message_control_id = explode('|', $segment)[9];
             }
@@ -282,48 +265,60 @@ class DefaultHL7Server
             }
 
             if (str_starts_with($segment, 'OBX')) {
-                $test_item_mark = explode('|', $segment)[3];
-                $analyte_id = explode('^', $test_item_mark)[1];
-                $result_value = explode('|', $segment)[5];
-                $unit = explode('|', $segment)[6];
-                $reference_range = explode('|', $segment)[7];
-
-                if (isset($analyte_id) && $analyte_id != '') {
-                    $sub_test_id = Test::where('name', $analyte_id)->first()->sub_test_id ?? null;
-                    $test_id = Test::where('name', $analyte_id)->first()->test_id ?? null;
-                    $lis_code = $sub_test_id != null ? $test_id . "-" . $sub_test_id : $test_id;
-                }
-
-                echo "Analyte code: $analyte_id\n";
-                echo "LIS code: $lis_code\n";
-                echo "Result value: $result_value\n";
-                echo "Unit: $unit\n";
-                echo "Reference range: $reference_range\n";
-
-                $result = new Result(
-                    [
-                        'barcode' => $this->barcode,
-                        'analyte_id' => $analyte_id,
-                        'lis_code' => $lis_code,
-                        'result' => $result_value,
-                        'unit' => $unit,
-                        'reference_range' => $reference_range,
-                        'original_string' => $segment,
-                    ]
-                );
-
-                $result->save();
+                $this->processOBXSegment($segment);
             }
         }
 
         $this->sendACK($message_control_id);
     }
 
+    private function processOBXSegment(string $segment): bool
+    {
+        $fields = explode('|', $segment);
+
+        $test_item_mark = $fields[3] ?? '';
+        $analyte_name = explode('^', $test_item_mark)[1] ?? '';
+        $result_value = $fields[5] ?? '';
+        $unit = $fields[6] ?? '';
+        $analyte_id = $this->getAnalyteID($analyte_name);
+
+        echo "Analyte name: $analyte_name\n";
+        echo "Analyte ID: $analyte_id\n";
+        echo "Result value: $result_value\n";
+        echo "Unit: $unit\n";
+
+        $result_data = [
+            'lab_id' => env('LAB_ID'),
+            'barcode' => $this->barcode,
+            'analyte_name' => $analyte_name,
+            'analyte_id' => $analyte_id,
+            'result' => $result_value,
+            'unit' => $unit,
+            'original_string' => $segment,
+        ];
+
+        return $this->resultService->createResult($result_data);
+    }
+
+    private function getAnalyteID(string $analyte_name): ?string
+    {
+        if (empty($analyte_name)) return null;
+
+        $analyte = Analyte::where('name', $analyte_name)->first();
+        if ($analyte) {
+            return $analyte->analyte_id;
+        }
+
+        return 'N/A';
+    }
+
+    // TODO: Implement the handleOrderRequest method if necessary
+
     private function handleOrderRequest(array $segments): void
     {
         $message_control_id = '00000000';
         $this->barcode = '';
-        $order = null;
+
         foreach ($segments as $segment) {
             if (str_starts_with($segment, 'MSH')) {
                 $message_control_id = explode('|', $segment)[9];
@@ -336,15 +331,13 @@ class DefaultHL7Server
             }
         }
 
-        if ($this->barcode !== '') {
-            $order = Order::where('test_barcode', $this->barcode)->first() ??
-                Order::where('order_barcode', $this->barcode)->first() ??
-                null;
-        }
+        // TODO: Find the order by barcode
+        // this is incorrect as there might be more orders with the same barcode
+        $order = Order::where('test_barcode', $this->barcode)->first()
+            ?? Order::where('order_barcode', $this->barcode)->first();
 
         if ($order) {
-            $order_id = $order->id;
-            $this->sendOrderInformation($message_control_id, $message_processing_id, $order_id);
+            $this->sendOrderInformation($message_control_id, $message_processing_id, $order->id);
         } else {
             $this->sendNACK($message_control_id);
         }
@@ -354,14 +347,13 @@ class DefaultHL7Server
 
     private function sendOrderInformation(string $message_control_id, string $message_processing_id, $order_id): void
     {
-        // todo: implement order information sending
+        // Placeholder: Implement order information sending
+        $message = "MSH|^~\\&|BC-5380|Mindray|||20080617143943||ORR^R02|$message_control_id|$message_processing_id|2.3.1||||||UNICODE\r"
+            . "MSA|AA|$message_control_id\r"
+            . "ORC|AF|$this->barcode|||\r"
+            . "OBR|1|SampleID1||||20060506||||tester|||Diagnose content....|20060504||||||||20080821||HM||||Validator||||Operator";
 
-//        $message = "MSH|^~\\&|BC-5380|Mindray|||20080617143943||ORR^R02|" . $message_control_id . "|" . $message_processing_id . "|2.3.1||||||UNICODE\r" .
-//            "MSA|AA|" . $message_control_id . "\r" .
-//            "ORC|AF|" . $this->barcode . "|||\r" .
-//            "OBR|1|SampleID1||||20060506||||tester|||Diagnose content....|20060504||||||||20080821||HM||||Validator||||Operator";
-//
-//        $wrapped_message = self::VT . $message . self::FS . self::CR;
-//        socket_write($this->client_socket, $wrapped_message, strlen($wrapped_message));
+        $wrapped_message = self::VT . $message . self::FS . self::CR;
+        socket_write($this->client_socket, $wrapped_message, strlen($wrapped_message));
     }
 }

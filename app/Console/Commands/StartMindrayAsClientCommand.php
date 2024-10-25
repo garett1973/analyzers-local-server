@@ -2,24 +2,25 @@
 
 namespace App\Console\Commands;
 
-use App\Libraries\Analyzers\Default\DefaultHL7Server;
+use App\Libraries\Analyzers\Default\DefaultHL7Client;
+use App\Libraries\Analyzers\MindrayAsClient;
 use Exception;
 use Illuminate\Console\Command;
 
-class StartDefaultHL7ServerCommand extends Command
+class StartMindrayAsClientCommand extends Command
 {
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'hl:start';
+    protected $signature = 'mindray:start';
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Starts the default HL7 server for analyzer connection';
+    protected $description = 'Starts the server for Mindray connection as client';
 
     public function __construct()
     {
@@ -33,14 +34,14 @@ class StartDefaultHL7ServerCommand extends Command
     public function handle(): void
     {
         $connection = false;
-        $defaultHL7Server = DefaultHL7Server::getInstance();
+        $mindrayClient = MindrayAsClient::getInstance();
 
         while (!$connection) {
-            $connection = $defaultHL7Server->start();
+            $connection = $mindrayClient->start();
             sleep(10);
         }
 
-        $this->info('Default HL7 server started');
-        $defaultHL7Server->process();
+        $this->info('Server for Mindray client started');
+        $mindrayClient->process();
     }
 }

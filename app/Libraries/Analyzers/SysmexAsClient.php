@@ -11,7 +11,7 @@ use App\Models\Test;
 use Exception;
 use Illuminate\Support\Facades\Log;
 
-class SysmexServer
+class SysmexAsClient
 {
     public const ACK = HexCodes::ACK->value;
     public const NAK = HexCodes::NAK->value;
@@ -22,7 +22,7 @@ class SysmexServer
     public const CR = HexCodes::CR->value;
     public const LF = HexCodes::LF->value;
 
-    private static ?SysmexServer $instance = null;
+    private static ?SysmexAsClient $instance = null;
     private $server_socket;
     private $client_socket;
     private bool $receiving = true;
@@ -47,10 +47,10 @@ class SysmexServer
         }
     }
 
-    public static function getInstance(ResultServiceInterface $resultService): SysmexServer
+    public static function getInstance(ResultServiceInterface $resultService): SysmexAsClient
     {
         if (self::$instance === null) {
-            self::$instance = new SysmexServer($resultService);
+            self::$instance = new SysmexAsClient($resultService);
         }
         return self::$instance;
     }
@@ -149,7 +149,7 @@ class SysmexServer
 
     private function reconnect(): void
     {
-        Log::channel('sysmex_server_log')->error(' -> Waiting for client to reconnect ...');
+        Log::channel('sysmex_log')->error(' -> Waiting for client to reconnect ...');
         echo "Waiting for client to reconnect...\n";
         socket_close($this->client_socket);
         $this->acceptClientConnection();
@@ -259,7 +259,7 @@ class SysmexServer
 
     private function logEvent(string $message): void
     {
-        Log::channel('sysmex_server_log')->info(" -> $message");
+        Log::channel('sysmex_log')->info(" -> $message");
         echo "$message\n";
     }
 
@@ -315,9 +315,9 @@ class SysmexServer
 
     private function logAndProcessMessage(string $type, string $inc): void
     {
-        Log::channel('sysmex_server_log')->info(" -> $type received: $inc");
+        Log::channel('sysmex_log')->info(" -> $type received: $inc");
         $inc = $this->cleanMessage($inc);
-        Log::channel('sysmex_server_log')->info("$type string: $inc");
+        Log::channel('sysmex_log')->info("$type string: $inc");
         echo "$type received: $inc\n";
         $this->sendACK();
     }
@@ -458,7 +458,7 @@ class SysmexServer
 
     private function saveResult(string $inc): bool
     {
-        [$analyte_name, $result_value, $unit, $ref_range] = $this->extractResultData($inc);
+        [$analyte_name, $result_value, $unit] = $this->extractResultData($inc);
         $analyte = Analyte::where('name', $analyte_name)->first();
         $analyte_id = $analyte ? $analyte->analyte_id : 'N/A';
 
@@ -469,7 +469,6 @@ class SysmexServer
             'analyte_name' => $analyte_name,
             'result' => $result_value,
             'unit' => $unit,
-            'reference_range' => $ref_range,
             'original_string' => $inc,
         ];
 
@@ -478,7 +477,7 @@ class SysmexServer
 
     private function logMessage(string $type, string $message): void
     {
-        Log::channel('sysmex_server_log')->info(" -> $type: $message");
+        Log::channel('sysmex_log')->info(" -> $type: $message");
         echo "$type: $message\n";
     }
 

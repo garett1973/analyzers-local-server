@@ -5,7 +5,7 @@ namespace App\Console\Commands;
 use App\Libraries\Analyzers\Test\TestClient;
 use Illuminate\Console\Command;
 
-class TestClientConnectionCommand extends Command
+class ConnectAsTestClientCommand extends Command
 {
 
     /**

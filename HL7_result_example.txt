@@ -1,0 +1,4 @@
+MSH|^~\&|SendingApp|SendingFac|ReceivingApp|ReceivingFac|20241024153000||ORU^R01|MSG00001|P|2.3
+PID|1||123456||Doe^John^^^||19800101|M||2106-3|123 Main St^^Metropolis^CA^90210||(555)123-4567||(555)123-4567|||
+OBR|1|1234^Lab|5678^Lab|890^TestType|||||||DR. SMITH||||||20241024120000
+OBX|1|NM|Glucose^GLU||5.4|mmol/L|4.0-6.0|N|||F

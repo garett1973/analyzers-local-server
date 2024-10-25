@@ -3,11 +3,11 @@
 namespace App\Console\Commands;
 
 use App\Http\Services\Interfaces\ResultServiceInterface;
-use App\Libraries\Analyzers\SysmexServer;
+use App\Libraries\Analyzers\PremierAsServer;
 use Exception;
 use Illuminate\Console\Command;
 
-class StartSysmexServerCommand extends Command
+class StartPremierAsServerCommand extends Command
 {
     private ResultServiceInterface $resultService;
 
@@ -22,14 +22,14 @@ class StartSysmexServerCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'sysmex:start';
+    protected $signature = 'premier:connect';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Starts the server for Sysmex analyzer connection';
+    protected $description = 'Connects to the Premier Analyzer as client';
 
     /**
      * Execute the console command.
@@ -39,10 +39,10 @@ class StartSysmexServerCommand extends Command
     {
         $counter = 0;
         $connection = false;
-        $defaultServer = SysmexServer::getInstance($this->resultService);
+        $premierAnalyzer = PremierAsServer::getInstance($this->resultService);
 
         while ($counter < 10) {
-            $connection = $defaultServer->start();
+            $connection = $premierAnalyzer->connect();
             if ($connection) {
                 break;
             }
@@ -51,8 +51,8 @@ class StartSysmexServerCommand extends Command
         }
 
         if ($connection) {
-            $this->info('Server for Sysmex analyzer started');
-            $defaultServer->process();
+            $this->info('Connected to Premier Analyzer');
+            $premierAnalyzer->process();
         }
     }
 }

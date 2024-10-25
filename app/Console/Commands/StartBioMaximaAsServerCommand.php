@@ -3,11 +3,12 @@
 namespace App\Console\Commands;
 
 use App\Http\Services\Interfaces\ResultServiceInterface;
-use App\Libraries\Analyzers\PremierClient;
+use App\Libraries\Analyzers\PremierAsServer;
+use App\Libraries\BioMaximaAsServer;
 use Exception;
 use Illuminate\Console\Command;
 
-class ConnectPremierClientCommand extends Command
+class StartBioMaximaAsServerCommand extends Command
 {
     private ResultServiceInterface $resultService;
 
@@ -22,14 +23,14 @@ class ConnectPremierClientCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'premier:connect';
+    protected $signature = 'biomaxima:connect';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Connects to the Premier Analyzer as client';
+    protected $description = 'Connects to the BioMaxima Analyzer as client';
 
     /**
      * Execute the console command.
@@ -39,10 +40,10 @@ class ConnectPremierClientCommand extends Command
     {
         $counter = 0;
         $connection = false;
-        $premierAnalyzer = PremierClient::getInstance($this->resultService);
+        $biomaximaAnalyzer = BioMaximaAsServer::getInstance($this->resultService);
 
         while ($counter < 10) {
-            $connection = $premierAnalyzer->connect();
+            $connection = $biomaximaAnalyzer->connect();
             if ($connection) {
                 break;
             }
@@ -51,8 +52,8 @@ class ConnectPremierClientCommand extends Command
         }
 
         if ($connection) {
-            $this->info('Connected to Premier Analyzer');
-            $premierAnalyzer->process();
+            $this->info('Connected to BioMaxima Analyzer');
+            $biomaximaAnalyzer->process();
         }
     }
 }

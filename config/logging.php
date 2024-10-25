@@ -158,9 +158,9 @@ return [
             'level' => 'debug',
         ],
 
-        'sysmex_server_log' => [
+        'sysmex_log' => [
             'driver' => 'single',
-            'path' => storage_path('logs/sysmex_server.log'),
+            'path' => storage_path('logs/sysmex.log'),
             'level' => 'debug',
         ],
 
@@ -170,9 +170,15 @@ return [
             'level' => 'debug',
         ],
 
-        'sysmex_log' => [
+        'mindray_log' => [
             'driver' => 'single',
-            'path' => storage_path('logs/sysmex.log'),
+            'path' => storage_path('logs/mindray.log'),
+            'level' => 'debug',
+        ],
+
+        'biomaxima_log' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/biomaxima.log'),
             'level' => 'debug',
         ],
     ],

@@ -43,7 +43,6 @@ class TestServer
 
 //        $ip = '62.80.253.55'; // public address
 
-        // loop back address
 //        $ip = '127.0.0.1';
 //        $port = 12000;
 

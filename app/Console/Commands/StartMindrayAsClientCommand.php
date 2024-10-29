@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Http\Services\Interfaces\ResultServiceInterface;
 use App\Libraries\Analyzers\Default\DefaultHL7Client;
 use App\Libraries\Analyzers\MindrayAsClient;
 use Exception;
@@ -22,9 +23,12 @@ class StartMindrayAsClientCommand extends Command
      */
     protected $description = 'Starts the server for Mindray connection as client';
 
-    public function __construct()
+    private ResultServiceInterface $resultService;
+
+    public function __construct(ResultServiceInterface $resultService)
     {
         parent::__construct();
+        $this->resultService = $resultService;
     }
 
     /**
@@ -34,7 +38,7 @@ class StartMindrayAsClientCommand extends Command
     public function handle(): void
     {
         $connection = false;
-        $mindrayClient = MindrayAsClient::getInstance();
+        $mindrayClient = MindrayAsClient::getInstance($this->resultService);
 
         while (!$connection) {
             $connection = $mindrayClient->start();

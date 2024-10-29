@@ -54,6 +54,8 @@ class MindrayAsClient
 //        $ip = '127.0.0.1';
 //        $port = 12000;
 
+// original ip 192.168.1.247 // from Sysmex
+
     public function start(): bool
     {
         $ip = '192.168.1.112';
@@ -113,6 +115,7 @@ class MindrayAsClient
                 $this->handleClientDisconnection();
                 break;
             }
+            echo "Received: $inc\n";
 
             // Validate the hex string
             if (!ctype_xdigit($inc) || strlen($inc) % 2 != 0) {
@@ -127,9 +130,11 @@ class MindrayAsClient
             }
 
             $inc = $this->removeControlCharacters($inc);
+            echo "Control characters removed: $inc\n";
 
             // Convert hex to binary
             $inc = hex2bin($inc);
+            echo "Converted to binary: $inc\n";
             if ($inc === false) {
                 echo "Hex to binary conversion failed...\n";
                 $this->handleClientDisconnection();
@@ -140,6 +145,7 @@ class MindrayAsClient
 
             if ($inc) {
                 $message_control_id = $this->getMessageControlId($inc);
+                echo "Message control ID: $message_control_id\n";
 
                 if ($this->isQcMessage($inc)) {
                     $this->handleQCMessage($message_control_id);
@@ -217,6 +223,7 @@ class MindrayAsClient
 
     private function handleQCMessage(string $message_control_id): void
     {
+        echo "QC message received\n";
         $this->sendACK($message_control_id, 'Q');
     }
 
@@ -229,13 +236,16 @@ class MindrayAsClient
 
     private function handleIncomingMessage(string $inc): void
     {
+        echo "Data message received\n";
         $segments = $this->getMessageSegments($inc);
         $message_type = $this->getMessageType($segments[0]);
         echo "Message type: $message_type\n";
 
         if ($message_type === 'ORU') {
+            echo "Result message received\n";
             $this->handleResult($segments);
         } elseif ($message_type === 'ORM') {
+            echo "Order message received\n";
             $this->handleOrderRequest($segments);
         }
 

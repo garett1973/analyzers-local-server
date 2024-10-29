@@ -139,7 +139,6 @@ return [
             'level' => 'debug',
         ],
 
-
         'default_client_log' => [
             'driver' => 'single',
             'path' => storage_path('logs/default_client.log'),

@@ -64,10 +64,12 @@ class SysmexAsClient
 //        $ip = '127.0.0.1';
 //        $port = 12000;
 
+// original ip 192.168.1.247
+
     public function start(): bool
     {
-        $ip = '192.168.0.111';
-        $port = 12000;
+        $ip = '192.168.1.112';
+        $port = 6670;
 
         if (!$this->bindSocket($ip, $port) || !$this->listenOnSocket()) {
             return false;
@@ -331,12 +333,14 @@ class SysmexAsClient
 
     private function extractChecksum(string $inc): string
     {
+        $inc = bin2hex($inc);
         $checksum = substr(substr($inc, 0, -4), -4);
         return strtoupper(hex2bin($checksum));
     }
 
     private function prepareMessageForChecksum(string $inc): string
     {
+        $inc = bin2hex($inc);
         return substr(substr($inc, 2), 0, -8);
     }
 
@@ -453,6 +457,7 @@ class SysmexAsClient
 
     private function cleanMessage(string $inc): string
     {
+        $inc = bin2hex($inc);
         return hex2bin(substr(substr($inc, 2), 0, -10));
     }
 

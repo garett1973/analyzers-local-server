@@ -60,8 +60,8 @@ class DefaultServer
 //        $ip = '127.0.0.1';
 //        $port = 12000;
 
-        $ip = '192.168.0.111';
-        $port = 9999;
+        $ip = '192.168.1.112';
+        $port = 6670;
 
         // Create socket
         $this->server_socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);

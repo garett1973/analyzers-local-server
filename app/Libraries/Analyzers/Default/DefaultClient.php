@@ -55,11 +55,11 @@ class DefaultClient
     public function connect(): bool
     {
 //        $ip = '85.206.48.46';
-//    $ip = '192.168.1.111';
-//        $port = 9999;
+        $ip = '192.168.1.111';
+        $port = 11111;
 
-    $ip = '127.0.0.1';
-    $port = 12000;
+//    $ip = '127.0.0.1';
+//    $port = 12000;
 
         // Attempt to connect to the socket server
         $this->connection = @socket_connect($this->socket, $ip, $port);
@@ -283,7 +283,7 @@ class DefaultClient
 
         // Retrieve the order record
         $this->order_record = $this->getOrderString();
-        $this->order_found = (bool) $this->order_record;
+        $this->order_found = (bool)$this->order_record;
 
         if ($this->order_found) {
             echo "Order string: $this->order_record\n";
@@ -369,7 +369,7 @@ class DefaultClient
     private function calculateChecksum(string $inc): string
     {
         $hexArray = str_split($inc, 2);
-        $checksum = array_reduce($hexArray, function($carry, $hex) {
+        $checksum = array_reduce($hexArray, function ($carry, $hex) {
             return $carry + hexdec($hex);
         }, 0);
 

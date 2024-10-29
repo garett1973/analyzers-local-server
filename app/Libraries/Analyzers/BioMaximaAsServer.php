@@ -1,10 +1,9 @@
 <?php
 
-namespace App\Libraries;
+namespace App\Libraries\Analyzers;
 
 use App\Enums\HexCodes;
 use App\Http\Services\Interfaces\ResultServiceInterface;
-use App\Models\Analyte;
 use Illuminate\Support\Facades\Log;
 
 class BioMaximaAsServer
@@ -193,7 +192,7 @@ class BioMaximaAsServer
 //        $ip = '192.168.1.111';
 //        $port = 9999;
 
-        $ip = '127.0.0.1';
+//        $ip = '127.0.0.1';
         $ip = '192.168.0.111';
         $port = 12000;
 

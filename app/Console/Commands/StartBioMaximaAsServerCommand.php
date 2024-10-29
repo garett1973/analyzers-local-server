@@ -3,8 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Http\Services\Interfaces\ResultServiceInterface;
-use App\Libraries\Analyzers\PremierAsServer;
-use App\Libraries\BioMaximaAsServer;
+use App\Libraries\Analyzers\BioMaximaAsServer;
 use Exception;
 use Illuminate\Console\Command;
 

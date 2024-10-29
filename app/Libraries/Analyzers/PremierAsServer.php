@@ -353,9 +353,9 @@ class PremierAsServer
 //        $ip = '192.168.1.111';
 //        $port = 9999;
 
-        $ip = '127.0.0.1';
-        $ip = '192.168.0.111';
-        $port = 12000;
+//        $ip = '127.0.0.1';
+        $ip = '192.168.1.111';
+        $port = 11111;
 
         $this->connection = @socket_connect($this->socket, $ip, $port);
         if ($this->connection === false) {

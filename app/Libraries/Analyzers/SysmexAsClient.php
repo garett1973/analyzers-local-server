@@ -207,36 +207,36 @@ class SysmexAsClient
 
     private function handleEnq(): void
     {
-        $this->logAndSend('ENQ received', 'ENQ sent', self::ACK);
+        $this->logAndSend('ENQ received', 'ACK sent', self::ACK);
     }
 
     private function handleEot(): bool
     {
-        $this->logEvent('EOT received');
+        $this->logEvent('EOT received\n');
         $this->barcode = '';
         return !$this->order_requested;
     }
 
     private function sendACK(): void
     {
-        $this->sendMessage(self::ACK, 'ACK sent');
+        $this->sendMessage(self::ACK, 'ACK sent\n');
     }
 
     private function sendNAK(): void
     {
         $this->resetOrderStatus();
-        $this->sendMessage(self::NAK, 'NAK sent');
+        $this->sendMessage(self::NAK, 'NAK sent\n');
     }
 
     private function sendENQ(): void
     {
-        $this->sendMessage(self::ENQ, 'ENQ sent');
+        $this->sendMessage(self::ENQ, 'ENQ sent\n');
     }
 
     private function sendEOT(): void
     {
         $this->resetOrderStatus();
-        $this->sendMessage(self::EOT, 'EOT sent');
+        $this->sendMessage(self::EOT, 'EOT sent\n');
     }
 
     private function resetOrderStatus(): void
@@ -295,14 +295,17 @@ class SysmexAsClient
 
     private function handleOrderRequest(string $inc): void
     {
+        LOG::channel('sysmex_log')->info(' -> Processing order request');
         $this->order_requested = true;
         $this->logAndProcessMessage('Order request', $inc);
         $inc = $this->cleanMessage($inc);
         $this->barcode = preg_replace('/[^0-9]/', '', explode('|', $inc)[3]);
         echo "Barcode from request string in order request: $this->barcode\n";
+        LOG::channel('sysmex_log')->info(" -> Barcode in order request: $this->barcode");
         $this->order_record = $this->getOrderString();
         $this->order_found = !empty($this->order_record);
         echo $this->order_found ? "Order string: $this->order_record\n" : "Order not found\n";
+        LOG::channel('sysmex_log')->info($this->order_found ? " -> Order string: $this->order_record" : ' -> Order not found');
     }
 
     private function handleComment(string $inc): void
@@ -318,8 +321,8 @@ class SysmexAsClient
     private function logAndProcessMessage(string $type, string $inc): void
     {
         Log::channel('sysmex_log')->info(" -> $type received: $inc");
+        LOG::channel('sysmex_log')->info(" -> $type received in hex: " . bin2hex($inc));
         $inc = $this->cleanMessage($inc);
-        Log::channel('sysmex_log')->info("$type string: $inc");
         echo "$type received: $inc\n";
         $this->sendACK();
     }
@@ -328,6 +331,7 @@ class SysmexAsClient
     {
         $checksum = $this->extractChecksum($inc);
         $preparedInc = $this->prepareMessageForChecksum($inc);
+        // $preparedInc is in hex format
         return $this->isChecksumValid($preparedInc, $checksum) ? $this->cleanMessage($inc) : null;
     }
 
@@ -494,6 +498,7 @@ class SysmexAsClient
         socket_write($this->client_socket, $data, strlen($data));
         $inc = socket_read($this->client_socket, 1024);
         if ($inc != self::ACK) {
+            $this->logEvent('ACK not received for data sent');
             throw new Exception('ACK not received');
         }
         $this->logEvent("Data sent: $data");

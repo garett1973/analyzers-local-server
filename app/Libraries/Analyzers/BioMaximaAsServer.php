@@ -109,21 +109,6 @@ class BioMaximaAsServer
     {
         echo "EOT received\n";
         Log::channel('biomaxima_log')->info(' -> EOT received');
-
-//        $saved_results = false;
-//        if (!empty($this->results)) {
-//            $saved_results = $this->saveResults();
-//        }
-//
-//        if ($saved_results) {
-//            LOG::channel('biomaxima_log')->info(' -> Results saved successfully');
-//            $this->sendACK();
-//        } else {
-//            $this->sendNAK();
-//        }
-//
-//        $this->barcode = '';
-//        $this->results = [];
     }
 
     private function processDataMessage(string $inc): void
@@ -142,7 +127,6 @@ class BioMaximaAsServer
     {
         return explode(self::CR . self::LF, $inc);
     }
-
 
         private function handleResult(string $segment): void
     {
@@ -185,16 +169,16 @@ class BioMaximaAsServer
             sleep(10);
         }
     }
-
-    public function connect(): bool
-    {
 //        $ip = '85.206.48.46';
 //        $ip = '192.168.1.111';
 //        $port = 9999;
 
 //        $ip = '127.0.0.1';
-        $ip = '192.168.0.111';
-        $port = 12000;
+
+    public function connect(): bool
+    {
+        $ip = '192.168.1.111';
+        $port = 11111;
 
         $this->connection = @socket_connect($this->socket, $ip, $port);
         if ($this->connection === false) {

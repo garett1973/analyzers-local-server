@@ -56,7 +56,7 @@ class MindrayAsClient
 
     public function start(): bool
     {
-        $ip = '192.168.0.111';
+        $ip = '192.168.1.112';
         $port = 12000;
 
         if (!$this->bindSocket($ip, $port) || !$this->listenOnSocket()) {

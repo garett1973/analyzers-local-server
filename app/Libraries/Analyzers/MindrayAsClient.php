@@ -59,7 +59,7 @@ class MindrayAsClient
     public function start(): bool
     {
         $ip = '192.168.1.112';
-        $port = 12000;
+        $port = 6669;
 
         if (!$this->bindSocket($ip, $port) || !$this->listenOnSocket()) {
             return false;
@@ -110,6 +110,12 @@ class MindrayAsClient
             }
 
             $inc = socket_read($this->client_socket, 8192);
+            echo "Received: $inc\n";
+            LOG::channel('mindray_log')->info(' -> Received string: ' . $inc);
+            echo "Received length: " . strlen($inc) . "\n";
+            echo "Received hex: " . bin2hex($inc) . "\n";
+            LOG::channel('mindray_log')->info(' -> Received hex: ' . bin2hex($inc));
+
             if ($inc === false) {
                 echo "Socket read failed: " . socket_strerror(socket_last_error($this->client_socket)) . "\n";
                 $this->handleClientDisconnection();
@@ -118,17 +124,20 @@ class MindrayAsClient
             echo "Received: $inc\n";
 
             // Validate the hex string
-            if (!ctype_xdigit($inc) || strlen($inc) % 2 != 0) {
-                echo "Invalid hex string received: $inc\n";
-                $this->handleClientDisconnection();
-                break;
-            }
+//            if (!ctype_xdigit($inc) || strlen($inc) % 2 != 0) {
+//                echo "Invalid hex string received: $inc\n";
+//                $this->handleClientDisconnection();
+//                break;
+//            }
+//
+//            if (!$this->checkIfFullMessageReceived($inc)) {
+//                echo "Full message not received\n";
+//                $this->sendNACK();
+//                continue;
+//            }
 
-            if (!$this->checkIfFullMessageReceived($inc)) {
-                $this->sendNACK();
-                continue;
-            }
-
+            echo "Removing control characters...\n";
+            $inc = bin2hex($inc);
             $inc = $this->removeControlCharacters($inc);
             echo "Control characters removed: $inc\n";
 

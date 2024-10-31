@@ -125,6 +125,9 @@ class SysmexAsClient
 
             while ($this->receiving) {
                 $inc = socket_read($this->client_socket, 1024);
+                echo "Received: $inc\n";
+                LOG::channel('sysmex_log')->info(" -> Received: $inc");
+                Log::channel('sysmex_log')->info(" -> Received in hex: " . bin2hex($inc));
                 if ($inc === false) {
                     echo "Socket read failed: " . socket_strerror(socket_last_error($this->client_socket)) . "\n";
                     $this->handleClientDisconnection();

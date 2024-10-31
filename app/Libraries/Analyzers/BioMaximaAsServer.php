@@ -47,7 +47,11 @@ class BioMaximaAsServer
         while (true) {
             $this->setSocketOptions();
             while ($this->connection) {
-                $inc = @socket_read($this->socket, 1024); // Suppress error output
+                $inc = @socket_read($this->socket, 1024 * 4); // Suppress error output
+                echo "Received original: $inc\n";
+                LOG::channel('biomaxima_log')->info(' -> Received original: ' . $inc);
+                echo "Received in hex: " . bin2hex($inc) . "\n";
+                LOG::channel('biomaxima_log')->info(' -> Received in hex: ' . bin2hex($inc));
 
                 if ($inc === false || $inc === '') {
                     $this->handleReceivingError();
@@ -67,7 +71,7 @@ class BioMaximaAsServer
     private function setSocketOptions(): void
     {
         echo "Socket options set\n";
-        socket_set_option($this->socket, SOL_SOCKET, SO_RCVTIMEO, ['sec' => 15, 'usec' => 0]);
+        socket_set_option($this->socket, SOL_SOCKET, SO_RCVTIMEO, ['sec' => 60, 'usec' => 0]);
     }
 
     private function handleReceivingError(): void
@@ -113,10 +117,6 @@ class BioMaximaAsServer
 
     private function processDataMessage(string $inc): void
     {
-        echo "Received string: $inc\n";
-        echo "Hex: " . bin2hex($inc) . "\n";
-//        $inc = bin2hex($inc);
-
         $result_segments = $this->splitResultSegments($inc);
         foreach (array_slice($result_segments, 4) as $result_segment) {
             $this->handleResult($result_segment);

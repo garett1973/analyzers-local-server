@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: local-server
+  labels:
+    app: local-server
+# for the deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: local-server
+  template:
+    metadata:
+      labels:
+        app: local-server
+    # for the pod
+    spec:
+      containers:
+        - name: local-server
+          image: local-server:latest
+          imagePullPolicy: Always
+          ports:
+          - containerPort: 12000
+
+

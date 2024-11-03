@@ -45,13 +45,10 @@ class BioMaximaAsServer
     public function process(): void
     {
         while (true) {
+            $msg = '';
             $this->setSocketOptions();
             while ($this->connection) {
                 $inc = @socket_read($this->socket, 1024 * 4); // Suppress error output
-                echo "Received original: $inc\n";
-                LOG::channel('biomaxima_log')->info(' -> Received original: ' . $inc);
-                echo "Received in hex: " . bin2hex($inc) . "\n";
-                LOG::channel('biomaxima_log')->info(' -> Received in hex: ' . bin2hex($inc));
 
                 if ($inc === false || $inc === '') {
                     $this->handleReceivingError();
@@ -59,8 +56,12 @@ class BioMaximaAsServer
                     continue;
                 }
 
-                if ($inc) {
-                    $this->handleIncomingMessage($inc);
+                $inc = bin2hex($inc);
+                $full_received = $this->checkIfLastPartReceived($inc);
+                $msg .= $inc;
+                if ($full_received) {
+                    $this->handleReceivedMessage($msg);
+                    $msg = '';
                 }
             }
             $this->closeConnection();
@@ -80,55 +81,40 @@ class BioMaximaAsServer
         echo "Receiving error occurred\n";
     }
 
-    private function handleIncomingMessage(string $inc): void
+    private function endsWith(string $haystack, string $needle): bool
     {
-        switch ($inc) {
-            case self::ENQ:
-                $this->handleEnq();
-                break;
-            case self::EOT:
-                $this->handleEot();
-                break;
-            default:
-                $this->processDataMessage($inc);
-                break;
+        return str_ends_with($haystack, $needle);
+    }
+
+    private function checkIfLastPartReceived(string $inc): bool
+    {
+        return $this->endsWith($inc, self::CR . self::LF . self::ETX);
+    }
+
+    private function handleReceivedMessage(string $inc): void
+    {
+        $segments = $this->splitResultSegments($inc);
+        $barcode = explode(':', hex2bin($segments[1]))[1];
+
+
+        foreach ($segments as $segment) {
+            if ($segment === '') {
+                continue;
+            }
+            $this->handleResult($segment);
+            $this->parseResult($segment);
         }
+        $this->saveResults();
+        $this->resetFunction(); // Reset results array
     }
 
-    private function handleEnq(): void
-    {
-        echo "ENQ received\n";
-        Log::channel('biomaxima_log')->info(' -> ENQ received');
-        $this->sendACK();
-    }
-
-    private function sendACK(): void
-    {
-        socket_write($this->socket, self::ACK, strlen(self::ACK));
-        Log::channel('biomaxima_log')->info(' -> ACK sent');
-        echo "ACK sent\n";
-    }
-
-    private function handleEot(): void
-    {
-        echo "EOT received\n";
-        Log::channel('biomaxima_log')->info(' -> EOT received');
-    }
-
-    private function processDataMessage(string $inc): void
-    {
-        $result_segments = $this->splitResultSegments($inc);
-        foreach (array_slice($result_segments, 4) as $result_segment) {
-            $this->handleResult($result_segment);
-        }
-    }
 
     private function splitResultSegments(string $inc): array
     {
         return explode(self::CR . self::LF, $inc);
     }
 
-        private function handleResult(string $segment): void
+    private function handleResult(string $segment): void
     {
         Log::channel('biomaxima_log')->info(' -> Result received: ' . $segment);
     }

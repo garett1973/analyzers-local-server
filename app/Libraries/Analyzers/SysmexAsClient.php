@@ -247,6 +247,7 @@ class SysmexAsClient
         $this->barcode = '';
         $this->order_requested = false;
         $this->order_found = false;
+        $this->order_record = '';
         $this->receiving = true;
     }
 
@@ -300,11 +301,19 @@ class SysmexAsClient
     {
         LOG::channel('sysmex_log')->info(' -> Processing order request');
         $this->order_requested = true;
+
         $this->logAndProcessMessage('Order request', $inc);
         $inc = $this->cleanMessage($inc);
-        $this->barcode = preg_replace('/[^0-9]/', '', explode('|', $inc)[3]);
+//        $this->barcode = preg_replace('/[^0-9]/', '', explode('^', explode('|', $inc)[2])[2]);
+
+        $barcodeSegment = explode('|', $inc)[2];
+        $barcodePart = explode('^', $barcodeSegment);
+
+        $this->barcode = preg_replace('/[^0-9]/', '', $barcodePart);
+
         echo "Barcode from request string in order request: $this->barcode\n";
         LOG::channel('sysmex_log')->info(" -> Barcode in order request: $this->barcode");
+
         $this->order_record = $this->getOrderString();
         $this->order_found = !empty($this->order_record);
         echo $this->order_found ? "Order string: $this->order_record\n" : "Order not found\n";
@@ -324,9 +333,9 @@ class SysmexAsClient
     private function logAndProcessMessage(string $type, string $inc): void
     {
         Log::channel('sysmex_log')->info(" -> $type received: $inc");
-        LOG::channel('sysmex_log')->info(" -> $type received in hex: " . bin2hex($inc));
-        $inc = $this->cleanMessage($inc);
         echo "$type received: $inc\n";
+        LOG::channel('sysmex_log')->info(" -> $type received in hex: " . bin2hex($inc));
+        echo "$type received in hex: " . bin2hex($inc) . "\n";
         $this->sendACK();
     }
 
@@ -367,7 +376,9 @@ class SysmexAsClient
 
     private function getOrderString(): ?string
     {
-        $order = Order::where('test_barcode', $this->barcode)->orWhere('order_barcode', $this->barcode)->first();
+        $order = Order::where('test_barcode', $this->barcode)
+            ->orWhere('order_barcode', $this->barcode)
+            ->first();
         return $order->order_record ?? null;
     }
 
@@ -501,8 +512,10 @@ class SysmexAsClient
         socket_write($this->client_socket, $data, strlen($data));
         $inc = socket_read($this->client_socket, 1024);
         if ($inc != self::ACK) {
-            $this->logEvent('ACK not received for data sent');
-            throw new Exception('ACK not received');
+            $this->logEvent('ACK not received for data sent.');
+            $this->resetOrderStatus();
+            $this->reconnect();
+//            throw new Exception('ACK not received. Order record sending failed.');
         }
         $this->logEvent("Data sent: $data");
     }

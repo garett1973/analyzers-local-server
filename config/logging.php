@@ -180,5 +180,12 @@ return [
             'path' => storage_path('logs/biomaxima.log'),
             'level' => 'debug',
         ],
+
+
+        'biomaxima_test_log' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/biomaxima_test.log'),
+            'level' => 'debug',
+        ],
     ],
 ];

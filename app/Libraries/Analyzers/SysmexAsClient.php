@@ -307,7 +307,7 @@ class SysmexAsClient
 //        $this->barcode = preg_replace('/[^0-9]/', '', explode('^', explode('|', $inc)[2])[2]);
 
         $barcodeSegment = explode('|', $inc)[2];
-        $barcodePart = explode('^', $barcodeSegment);
+        $barcodePart = explode('^', $barcodeSegment)[2];
 
         $this->barcode = preg_replace('/[^0-9]/', '', $barcodePart);
 

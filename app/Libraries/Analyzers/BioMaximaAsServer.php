@@ -4,6 +4,7 @@ namespace App\Libraries\Analyzers;
 
 use App\Enums\HexCodes;
 use App\Http\Services\Interfaces\ResultServiceInterface;
+use App\Models\Analyte;
 use Illuminate\Support\Facades\Log;
 
 class BioMaximaAsServer
@@ -21,6 +22,7 @@ class BioMaximaAsServer
     private $socket;
     private $connection;
     private string $barcode = '';
+    private string $msg = '';
     private array $results = [];
     private ResultServiceInterface $resultService;
 
@@ -45,7 +47,6 @@ class BioMaximaAsServer
     public function process(): void
     {
         while (true) {
-            $msg = '';
             $this->setSocketOptions();
             while ($this->connection) {
                 $inc = @socket_read($this->socket, 1024 * 4); // Suppress error output
@@ -56,12 +57,16 @@ class BioMaximaAsServer
                     continue;
                 }
 
+                echo "Received: $inc\n";
                 $inc = bin2hex($inc);
+                echo "Received hex: $inc\n";
                 $full_received = $this->checkIfLastPartReceived($inc);
-                $msg .= $inc;
+                $this->msg .= $inc;
                 if ($full_received) {
-                    $this->handleReceivedMessage($msg);
-                    $msg = '';
+                    echo "Full message received\n";
+                    echo "-----------------------------------------------\n";
+                    $this->handleReceivedMessage();
+                    $this->msg = '';
                 }
             }
             $this->closeConnection();
@@ -88,49 +93,80 @@ class BioMaximaAsServer
 
     private function checkIfLastPartReceived(string $inc): bool
     {
-        return $this->endsWith($inc, self::CR . self::LF . self::ETX);
+        echo "Checking if last part received\n";
+        return $this->endsWith($inc, bin2hex(self::CR . self::LF . self::ETX));
     }
 
-    private function handleReceivedMessage(string $inc): void
+    private function handleReceivedMessage(): void
     {
-        $segments = $this->splitResultSegments($inc);
-        $barcode = explode(':', hex2bin($segments[1]))[1];
-
+        $segments = $this->splitResultSegments();
 
         foreach ($segments as $segment) {
+            echo "Segment: $segment\n";
+            echo "Segment binary: " . hex2bin($segment) . "\n";
             if ($segment === '') {
                 continue;
             }
-            $this->handleResult($segment);
-            $this->parseResult($segment);
+            $this->handleMessageSegment($segment);
         }
-        $this->saveResults();
+
+        $this->barcode = explode(':', hex2bin($segments[1]))[1];
+
+        $this->getResults($segments);
+
+        $results_saved = $this->saveResults();
         $this->resetFunction(); // Reset results array
     }
 
 
-    private function splitResultSegments(string $inc): array
+    private function splitResultSegments(): array
     {
-        return explode(self::CR . self::LF, $inc);
+        return explode(bin2hex(self::CR . self::LF), $this->msg);
     }
 
-    private function handleResult(string $segment): void
+    private function handleMessageSegment(string $segment): void
     {
-        Log::channel('biomaxima_log')->info(' -> Result received: ' . $segment);
+        Log::channel('biomaxima_test_log')->info(' -> Segment received: ' . $segment);
+        LOG::channel('biomaxima_test_log')->info(' -> Segment received: ' . hex2bin($segment));
+    }
+
+    private function getResults(array $segments): void
+    {
+        $results_array = array_slice($segments, 5, 15);
+        foreach ($results_array as $segment) {
+
+            $result_data = [];
+            $result_data['original_string'] = hex2bin($segment);
+
+            // remove fist 2 characters in segment - segment is in hex format and first character is either space or *
+            $segment = substr($segment, 2);
+            $analyte_name = hex2bin(explode('20', $segment)[0]);
+            $analyte = Analyte::where('name', $analyte_name)->first();
+            $analyte_id = $analyte ? $analyte->analyte_id : 'N/A';
+            $result_record = $this->extractResultAndUnit(hex2bin($segment));
+            LOG::channel('biomaxima_test_log')->info(' -> Result record: ' . json_encode($result_record));
+
+            $result_data['lab_id'] = env('LAB_ID');
+            $result_data['barcode'] = $this->barcode;
+            $result_data['analyte_id'] = $analyte_id;
+            $result_data['analyte_name'] = $analyte_name;
+            $result_data['result'] = ltrim($result_record['result']);
+            $result_data['unit'] = $result_record['unit'];
+
+            $this->results[] = $result_data;
+        }
     }
 
     private function saveResults(): bool
     {
-        $saved_results = true;
-
         foreach ($this->results as $result_data) {
             $saved_results = $this->resultService->createResult($result_data);
             if (!$saved_results) {
-                break;
+                return false;
             }
         }
 
-        return $saved_results;
+        return true;
     }
 
     public function closeConnection(): void
@@ -144,7 +180,7 @@ class BioMaximaAsServer
 
     private function reconnect(): void
     {
-        Log::channel('biomaxima_log')->error(' Reconnecting...');
+        Log::channel('biomaxima_test_log')->error(' Reconnecting...');
         echo "Reconnecting...\n";
         if ($this->socket) {
             socket_close($this->socket);
@@ -163,23 +199,73 @@ class BioMaximaAsServer
 
     public function connect(): bool
     {
-        $ip = '192.168.1.111';
-        $port = 11111;
+//        $ip = '192.168.1.111';
+//        $port = 11111;
+
+        $ip = '192.168.0.111';
+        $port = 12000;
 
         $this->connection = @socket_connect($this->socket, $ip, $port);
         if ($this->connection === false) {
             $errorMessage = socket_strerror(socket_last_error($this->socket));
             echo "Socket connection failed: $errorMessage\n";
-            Log::channel('biomaxima_log')->error(" -> Socket connection failed. Error: " . $errorMessage);
+            Log::channel('biomaxima_test_log')->error(" -> Socket connection failed. Error: " . $errorMessage);
             return false;
         }
         echo "Connection established\n";
-        Log::channel('biomaxima_log')->debug(' -> Connection to analyzer established');
+        Log::channel('biomaxima_test_log')->debug(' -> Connection to analyzer established');
         return true;
+    }
+
+    private function extractResultAndUnit(string $segment): array
+    {
+        // Define a mapping of analyte names to their specific patterns
+        $analytePatterns = [
+            'LEU' => '/[><=]*\s*\d{1,3}[a-zA-Z\/]+/',
+            'KET' => '/[><=]*\s*\d{1,3}(\.\d+)?\s*[a-zA-Z\/]+/',
+            'NIT' => '/[><=]*\s*\d{1,3}(\.\d+)?\s*[a-zA-Z\/]+/',
+            'URO' => '/[><=]*\s*\d{1,3}(\.\d+)?\s*[a-zA-Z\/]+/',
+            'BIL' => '/[><=]*\s*\d{1,3}(\.\d+)?\s*[a-zA-Z\/]+/',
+            'GLU' => '/[><=]*\s*\d{1,3}(\.\d+)?\s*[a-zA-Z\/]+/',
+            'PRO' => '/[><=]*\s*\d{1,3}(\.\d+)?\s*[a-zA-Z\/]+/',
+            'SG' => '/[><=]*\d{1,3}\.\d{3}/',
+            'pH' => '/[><=]*\s*\d{1,3}(\.\d+)?/', // Simplified pattern to match the format without specific "pH" check
+            'BLD' => '/[><=]*\s*\d{1,3}[a-zA-Z\/]+/', // Unified pattern with LEU
+            'Vc' => '/[><=]*\s*\d{1,3}(\.\d+)?\s*[a-zA-Z\/]+/',
+            'MA' => '/[><=]*\s*\d{1,3}(\.\d+)?\s*[a-zA-Z\/]+/',
+            'Ca' => '/[><=]*\s*\d{1,3}(\.\d+)?\s*[a-zA-Z\/]+/',
+            'CR' => '/[><=]*\s*\d{1,3}(\.\d+)?\s*[a-zA-Z\/]+/',
+            'ACR' => '/[><=]*\d{1,3}(\.\d+)?~\d{1,3}(\.\d+)?\s*[a-zA-Z\/]+/',
+        ];
+
+        // Extract analyte name
+        $analyteName = substr($segment, 0, strpos($segment, ' '));
+
+        // Find the pattern for the analyte name
+        $pattern = $analytePatterns[$analyteName] ?? null;
+
+        if ($pattern && preg_match($pattern, $segment, $matches)) {
+            $result_unit = $matches[0];
+
+            // Extract the result including comparison symbols
+            preg_match('/[><=~]*\s*\d{1,3}(\.\d+)?/', $result_unit, $resultMatch);
+            $result = $resultMatch[0] ?? '';
+
+            // Extract the unit
+            $unit = trim(preg_replace('/[\d.><=~\s]/', '', $result_unit));
+
+            return ['result' => $result, 'unit' => $unit];
+        }
+
+        // Return empty values if no match is found
+        return ['result' => '', 'unit' => ''];
     }
 
     private function resetFunction(): void
     {
+        $this->barcode = '';
+        $this->msg = '';
         $this->results = [];
     }
+
 }

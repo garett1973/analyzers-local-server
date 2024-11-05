@@ -47,5 +47,4 @@ class SendNewResultToMainServer implements ShouldQueue
             echo 'Error: ' . $e->getMessage() . PHP_EOL;
         }
     }
-
 }

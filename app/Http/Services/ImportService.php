@@ -77,6 +77,12 @@ class ImportService implements ImportServiceInterface
                 ->first();
 
             if ($analyte) {
+                if ($analyte->name === $analyte_data['name']) {
+                    continue;
+                }
+                $analyte->name = $analyte_data['name'];
+                $analyte->save();
+                $imported_analytes++;
                 continue;
             }
 

@@ -18,12 +18,16 @@ class ImportService implements ImportServiceInterface
         $imported_tests = 0;
         foreach ($tests_data['tests'] as $test_data) {
             $test = Test::where('test_id', $test_data['test_id'])
-                ->where('analyzer_id', $test_data['analyzer_id'])
-                ->where('description', $test_data['description'])
                 ->where('lab_id', $test_data['lab_id'])
+                ->where('analyzer_id', $test_data['analyzer_id'])
                 ->first();
 
             if ($test) {
+                if ($test->description != $test_data['description']) {
+                    $test->description = $test_data['description'];
+                    $test->save();
+                    $imported_tests++;
+                }
                 continue;
             }
 
@@ -34,14 +38,13 @@ class ImportService implements ImportServiceInterface
 
         return new JsonResponse([
             'status' => 200,
-            'updated_tests' => $imported_tests,
+            'imported_tests' => $imported_tests,
         ],
             200);
     }
 
     public function importAnalyzers(array $analyzers_data): JsonResponse
     {
-
         $imported_analyzers = 0;
         foreach ($analyzers_data['analyzers'] as $analyzer_data) {
             $analyzer = Analyzer::where('analyzer_id', $analyzer_data['analyzer_id'])
@@ -49,6 +52,18 @@ class ImportService implements ImportServiceInterface
                 ->first();
 
             if ($analyzer) {
+                if ($analyzer->name != $analyzer_data['name'] || $analyzer->model != $analyzer_data['model']) {
+                    if ($analyzer->name != $analyzer_data['name']) {
+                        $analyzer->name = $analyzer_data['name'];
+                    }
+                    if ($analyzer->model != $analyzer_data['model']) {
+                        $analyzer->model = $analyzer_data['model'];
+                    }
+
+                    $analyzer->save();
+                    $imported_analyzers++;
+                }
+
                 continue;
             }
 
@@ -59,14 +74,13 @@ class ImportService implements ImportServiceInterface
 
         return new JsonResponse([
             'status' => 200,
-            'updated_analyzers' => $imported_analyzers,
+            'imported_analyzers' => $imported_analyzers,
         ],
             200);
     }
 
     public function importAnalytes(array $analytes_data): JsonResponse
     {
-
         $imported_analytes = 0;
         foreach ($analytes_data['analytes'] as $analyte_data) {
             // Check if analyte already exists
@@ -77,61 +91,66 @@ class ImportService implements ImportServiceInterface
                 ->first();
 
             if ($analyte) {
-                if ($analyte->name === $analyte_data['name']) {
+                if ($analyte->name != $analyte_data['name'] || $analyte->description != $analyte_data['description']) {
+                    if ($analyte->name != $analyte_data['name']) {
+                        $analyte->name = $analyte_data['name'];
+                    }
+                    if ($analyte->description != $analyte_data['description']) {
+                        $analyte->description = $analyte_data['description'];
+                    }
+                    $analyte->save();
+                    $imported_analytes++;
                     continue;
                 }
-                $analyte->name = $analyte_data['name'];
+            }
+
+                $analyte = new Analyte($analyte_data);
                 $analyte->save();
                 $imported_analytes++;
-                continue;
             }
 
-            $analyte = new Analyte($analyte_data);
-            $analyte->save();
-            $imported_analytes++;
+            return new JsonResponse([
+                'status' => 200,
+                'imported_analytes' => $imported_analytes,
+            ],
+                200);
         }
 
-        return new JsonResponse([
-            'status' => 200,
-            'updated_analytes' => $imported_analytes,
-        ],
-            200);
-    }
+        public
+        function importAnalyzerTypes(array $analyzer_types_data): JsonResponse
+        {
+            $updated_analyzer_types = 0;
+            foreach ($analyzer_types_data['analyzer_types'] as $analyzer_type_data) {
+                $analyzer_type = AnalyzerType::where('name', $analyzer_type_data['name'])
+                    ->where('group_id', $analyzer_type_data['group_id'])
+                    ->first();
 
-    public function importAnalyzerTypes(array $analyzer_types_data): JsonResponse
-    {
+                if ($analyzer_type) {
+                    continue;
+                }
 
-        $updated_analyzer_types = 0;
-        foreach ($analyzer_types_data['analyzer_types'] as $analyzer_type_data) {
-            $analyzer_type = AnalyzerType::where('name', $analyzer_type_data['name'])
-                ->where('group_id', $analyzer_type_data['group_id'])
-                ->first();
-
-            if ($analyzer_type) {
-                continue;
+                $analyzer_type = new AnalyzerType($analyzer_type_data);
+                $analyzer_type->save();
+                $updated_analyzer_types++;
             }
 
-            $analyzer_type = new AnalyzerType($analyzer_type_data);
-            $analyzer_type->save();
-            $updated_analyzer_types++;
+            return new JsonResponse([
+                'status' => 200,
+                'imported_analyzer_types' => $updated_analyzer_types,
+            ],
+                200);
         }
 
-        return new JsonResponse([
-            'status' => 200,
-            'updated_analyzer_types' => $updated_analyzer_types,
-        ],
-            200);
-    }
+        public
+        function importResult(array $results_data): JsonResponse
+        {
+            $result = new Result($results_data);
+            $result->save();
 
-    public function importResult(array $results_data): JsonResponse
-    {
-        $result = new Result($results_data);
-        $result->save();
-
-        return new JsonResponse([
-            'status' => 200,
-            'message' => 'Result imported successfully',
-        ],
-            200);
+            return new JsonResponse([
+                'status' => 200,
+                'message' => 'Result imported successfully',
+            ],
+                200);
+        }
     }
-}

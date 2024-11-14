@@ -3,7 +3,6 @@
 namespace App\Console\Commands;
 
 use App\Http\Services\Interfaces\ResultServiceInterface;
-use App\Libraries\Analyzers\Default\DefaultHL7Client;
 use App\Libraries\Analyzers\MindrayAsClient;
 use Exception;
 use Illuminate\Console\Command;

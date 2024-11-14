@@ -126,8 +126,8 @@ class BioMaximaAsServer
 
     private function handleMessageSegment(string $segment): void
     {
-        Log::channel('biomaxima_test_log')->info(' -> Segment received: ' . $segment);
-        LOG::channel('biomaxima_test_log')->info(' -> Segment received: ' . hex2bin($segment));
+        Log::channel('biomaxima_log')->info(' -> Segment received: ' . $segment);
+        LOG::channel('biomaxima_log')->info(' -> Segment received: ' . hex2bin($segment));
     }
 
     private function getResults(array $segments): void
@@ -144,13 +144,13 @@ class BioMaximaAsServer
             $analyte = Analyte::where('name', $analyte_name)->first();
             $analyte_id = $analyte ? $analyte->analyte_id : 'N/A';
             $result_record = $this->extractResultAndUnit(hex2bin($segment));
-            LOG::channel('biomaxima_test_log')->info(' -> Result record: ' . json_encode($result_record));
+            LOG::channel('biomaxima_log')->info(' -> Result record: ' . json_encode($result_record));
 
             $result_data['lab_id'] = env('LAB_ID');
-            $result_data['barcode'] = $this->barcode;
+            $result_data['barcode'] = trim($this->barcode);
             $result_data['analyte_id'] = $analyte_id;
             $result_data['analyte_name'] = $analyte_name;
-            $result_data['result'] = ltrim($result_record['result']);
+            $result_data['result'] = trim($result_record['result']);
             $result_data['unit'] = $result_record['unit'];
 
             $this->results[] = $result_data;
@@ -180,7 +180,7 @@ class BioMaximaAsServer
 
     private function reconnect(): void
     {
-        Log::channel('biomaxima_test_log')->error(' Reconnecting...');
+        Log::channel('biomaxima_log')->error(' Reconnecting...');
         echo "Reconnecting...\n";
         if ($this->socket) {
             socket_close($this->socket);
@@ -209,11 +209,11 @@ class BioMaximaAsServer
         if ($this->connection === false) {
             $errorMessage = socket_strerror(socket_last_error($this->socket));
             echo "Socket connection failed: $errorMessage\n";
-            Log::channel('biomaxima_test_log')->error(" -> Socket connection failed. Error: " . $errorMessage);
+            Log::channel('biomaxima_log')->error(" -> Socket connection failed. Error: " . $errorMessage);
             return false;
         }
         echo "Connection established\n";
-        Log::channel('biomaxima_test_log')->debug(' -> Connection to analyzer established');
+        Log::channel('biomaxima_log')->debug(' -> Connection to analyzer established');
         return true;
     }
 
@@ -224,7 +224,7 @@ class BioMaximaAsServer
             'LEU' => '/[><=]*\s*\d{1,3}[a-zA-Z\/]+/',
             'KET' => '/[><=]*\s*\d{1,3}(\.\d+)?\s*[a-zA-Z\/]+/',
             'NIT' => '/[><=]*\s*\d{1,3}(\.\d+)?\s*[a-zA-Z\/]+/',
-            'URO' => '/[><=]*\s*\d{1,3}(\.\d+)?\s*[a-zA-Z\/]+/',
+            'URO' => '/[><=]*\s*(\d{1,3}(\.\d+)?|Normal|[a-zA-Z]+)(\s+[a-zA-Z\/]+)?/', // Updated pattern to capture optional unit
             'BIL' => '/[><=]*\s*\d{1,3}(\.\d+)?\s*[a-zA-Z\/]+/',
             'GLU' => '/[><=]*\s*\d{1,3}(\.\d+)?\s*[a-zA-Z\/]+/',
             'PRO' => '/[><=]*\s*\d{1,3}(\.\d+)?\s*[a-zA-Z\/]+/',
@@ -240,6 +240,7 @@ class BioMaximaAsServer
 
         // Extract analyte name
         $analyteName = substr($segment, 0, strpos($segment, ' '));
+        $segment = trim(substr($segment, strlen($analyteName)));
 
         // Find the pattern for the analyte name
         $pattern = $analytePatterns[$analyteName] ?? null;
@@ -247,12 +248,12 @@ class BioMaximaAsServer
         if ($pattern && preg_match($pattern, $segment, $matches)) {
             $result_unit = $matches[0];
 
-            // Extract the result including comparison symbols
-            preg_match('/[><=~]*\s*\d{1,3}(\.\d+)?/', $result_unit, $resultMatch);
+            // Extract the result including comparison symbols and words
+            preg_match('/[><=~]*\s*(\d{1,3}(\.\d+)?|[a-zA-Z]+)/', $result_unit, $resultMatch);
             $result = $resultMatch[0] ?? '';
 
-            // Extract the unit
-            $unit = trim(preg_replace('/[\d.><=~\s]/', '', $result_unit));
+            // Extract the unit by removing the result part from the result_unit
+            $unit = trim(str_replace($result, '', $result_unit));
 
             return ['result' => $result, 'unit' => $unit];
         }

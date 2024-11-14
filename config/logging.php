@@ -175,16 +175,27 @@ return [
             'level' => 'debug',
         ],
 
+        'mindray_log_test' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/mindray_test.log'),
+            'level' => 'debug',
+        ],
+
         'biomaxima_log' => [
             'driver' => 'single',
             'path' => storage_path('logs/biomaxima.log'),
             'level' => 'debug',
         ],
 
-
         'biomaxima_test_log' => [
             'driver' => 'single',
             'path' => storage_path('logs/biomaxima_test.log'),
+            'level' => 'debug',
+        ],
+
+        'au680_test_log' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/au680_test.log'),
             'level' => 'debug',
         ],
     ],

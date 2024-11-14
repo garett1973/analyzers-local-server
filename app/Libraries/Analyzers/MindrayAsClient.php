@@ -15,7 +15,6 @@ class MindrayAsClient
     public const VT = HexCodes::VT->value;
     public const FS = HexCodes::FS->value;
     public const CR = HexCodes::CR->value;
-    public const LF = HexCodes::LF->value;
 
     private static ?MindrayAsClient $instance = null;
     private $server_socket;
@@ -58,8 +57,12 @@ class MindrayAsClient
 
     public function start(): bool
     {
-        $ip = '192.168.1.112';
-        $port = 6669;
+//    connection parameters in laboratory
+//        $ip = '192.168.1.112';
+//        $port = 6669;
+
+        $ip = '192.168.0.111';
+        $port = 12000;
 
         if (!$this->bindSocket($ip, $port) || !$this->listenOnSocket()) {
             return false;
@@ -109,48 +112,32 @@ class MindrayAsClient
                 break;
             }
 
-            $inc = socket_read($this->client_socket, 8192);
-            echo "Received: $inc\n";
-            LOG::channel('mindray_log')->info(' -> Received string: ' . $inc);
-            echo "Received length: " . strlen($inc) . "\n";
-            echo "Received hex: " . bin2hex($inc) . "\n";
-            LOG::channel('mindray_log')->info(' -> Received hex: ' . bin2hex($inc));
+            $inc = @socket_read($this->client_socket, 16384);
+            LOG::channel('mindray_log')->info(" -> Received string: \n" . $inc);
+            LOG::channel('mindray_log')->info(" -> Received hex: \n" . bin2hex($inc));
 
             if ($inc === false) {
                 echo "Socket read failed: " . socket_strerror(socket_last_error($this->client_socket)) . "\n";
                 $this->handleClientDisconnection();
                 break;
             }
-            echo "Received: $inc\n";
+
+            $inc = bin2hex($inc);
 
             // Validate the hex string
-//            if (!ctype_xdigit($inc) || strlen($inc) % 2 != 0) {
-//                echo "Invalid hex string received: $inc\n";
-//                $this->handleClientDisconnection();
-//                break;
-//            }
-//
-//            if (!$this->checkIfFullMessageReceived($inc)) {
-//                echo "Full message not received\n";
-//                $this->sendNACK();
-//                continue;
-//            }
-
-            echo "Removing control characters...\n";
-            $inc = bin2hex($inc);
-            $inc = $this->removeControlCharacters($inc);
-            echo "Control characters removed: $inc\n";
-
-            // Convert hex to binary
-            $inc = hex2bin($inc);
-            echo "Converted to binary: $inc\n";
-            if ($inc === false) {
-                echo "Hex to binary conversion failed...\n";
+            if (!ctype_xdigit($inc) || strlen($inc) % 2 != 0) {
+                echo "Invalid hex string received: $inc\n";
                 $this->handleClientDisconnection();
                 break;
             }
-            // Replace <CR> with actual newline character
-            $inc = str_replace("\x0D", "\n", $inc);
+
+            if (!$this->checkIfFullMessageReceived($inc)) {
+                echo "Full message not received\n";
+                $this->sendNACK();
+                continue;
+            }
+
+            $inc = $this->removeControlCharacters($inc);
 
             if ($inc) {
                 $message_control_id = $this->getMessageControlId($inc);
@@ -197,13 +184,6 @@ class MindrayAsClient
         return str_starts_with(strtoupper($inc), '0B') && str_ends_with(strtoupper($inc), '1C0D');
     }
 
-    private function sendNACK($message_control_id = '00000000', string $type = 'P'): void
-    {
-        $nack_message = "MSH|^~\\&|LIS||||" . date('YmdHis') . "||ACK^A01|" . $message_control_id . "|" . $type . "|2.3.1\rMSA|AR|" . $message_control_id . "\r";
-        $wrapped_nack_message = self::VT . $nack_message . self::FS . self::CR;
-        socket_write($this->client_socket, $wrapped_nack_message, strlen($wrapped_nack_message));
-    }
-
     private function removeControlCharacters(string $inc): array|string
     {
         return substr($inc, 2, -6);
@@ -221,7 +201,13 @@ class MindrayAsClient
 
     private function getMessageSegments($inc): array
     {
-        return explode("\n", $inc);
+        // Split the hexadecimal string into segments by "0D"
+        $hexSegments = explode("0D", strtoupper($inc));
+
+        // Convert each hexadecimal segment to binary
+        return array_map(function($segment) {
+            return hex2bin($segment);
+        }, $hexSegments);
     }
 
     private function isQcMessage(string $inc): bool
@@ -236,16 +222,22 @@ class MindrayAsClient
         $this->sendACK($message_control_id, 'Q');
     }
 
+    private function sendNACK($message_control_id = '00000000', string $type = 'P'): void
+    {
+        $nack_message = "MSH|^~\\&|LIS||||" . date('YmdHis') . "||ACK^A01|" . $message_control_id . "|" . $type . "|2.3.1\rMSA|AR|" . $message_control_id . "\r";
+        $wrapped_nack_message = self::VT . $nack_message . self::FS . self::CR;
+        socket_write($this->client_socket, $wrapped_nack_message, strlen($wrapped_nack_message));
+    }
+
     private function sendACK(string $message_control_id, string $type = 'P'): void
     {
         $ack_message = "MSH|^~\\&|LIS||||" . date('YmdHis') . "||ACK^R01|" . $message_control_id . "|" . $type . "|2.3.1\rMSA|AA|" . $message_control_id . "\r";
         $wrapped_ack_message = self::VT . $ack_message . self::FS . self::CR;
-        socket_write($this->client_socket, bin2hex($wrapped_ack_message), strlen($wrapped_ack_message));
+        socket_write($this->client_socket, $wrapped_ack_message, strlen($wrapped_ack_message));
     }
 
     private function handleIncomingMessage(string $inc): void
     {
-        echo "Data message received\n";
         $segments = $this->getMessageSegments($inc);
         $message_type = $this->getMessageType($segments[0]);
         echo "Message type: $message_type\n";
@@ -273,9 +265,10 @@ class MindrayAsClient
 
         foreach ($segments as $segment) {
             Log::channel('mindray_log')->info(' -> ' . $segment);
-
+            echo "Segment: $segment\n";
             if (str_starts_with($segment, 'MSH')) {
                 $message_control_id = explode('|', $segment)[9];
+                echo "Message control ID: $message_control_id\n";
             }
 
             if (str_starts_with($segment, 'OBR')) {
@@ -284,14 +277,15 @@ class MindrayAsClient
             }
 
             if (str_starts_with($segment, 'OBX')) {
-                $this->processOBXSegment($segment);
+                if ($this->isResultSegment($segment)) {
+                    echo "Processing OBX result segment...\n";
+                    $this->processOBXSegment($segment);
+                }
             }
         }
-
-        $this->sendACK($message_control_id);
     }
 
-    private function processOBXSegment(string $segment): bool
+    private function processOBXSegment(string $segment): void
     {
         $fields = explode('|', $segment);
 
@@ -316,14 +310,18 @@ class MindrayAsClient
             'original_string' => $segment,
         ];
 
-        return $this->resultService->createResult($result_data);
+        $this->resultService->createResult($result_data);
     }
 
     private function getAnalyteID(string $analyte_name): ?string
     {
-        if (empty($analyte_name)) return null;
+        if (empty($analyte_name)) {
+            return null;
+        }
 
-        $analyte = Analyte::where('name', $analyte_name)->first();
+        $analyte = Analyte::where('name', $analyte_name)
+            ->where('analyte_id', '!=', 'N/A')
+            ->first();
         if ($analyte) {
             return $analyte->analyte_id;
         }
@@ -374,5 +372,10 @@ class MindrayAsClient
 
         $wrapped_message = self::VT . $message . self::FS . self::CR;
         socket_write($this->client_socket, $wrapped_message, strlen($wrapped_message));
+    }
+
+    private function isResultSegment(mixed $segment): bool
+    {
+        return (explode('|', $segment)[2] === 'NM') && !str_contains($segment, 'Scattergram') && !str_contains($segment, 'Histogram');
     }
 }

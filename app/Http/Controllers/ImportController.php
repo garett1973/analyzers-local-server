@@ -25,28 +25,24 @@ class ImportController extends Controller
     public function importAnalyzers(Request $request): JsonResponse
     {
         $analyzers_data = $request->all();
-
         return $this->importService->importAnalyzers($analyzers_data);
     }
 
     public function importAnalyzerTypes(Request $request): JsonResponse
     {
         $analyzer_types_data = $request->all();
-
         return $this->importService->importAnalyzerTypes($analyzer_types_data);
     }
 
     public function importAnalytes(Request $request): JsonResponse
     {
         $analytes_data = $request->all();
-
         return $this->importService->importAnalytes($analytes_data);
     }
 
     public function importResult(Request $request): JsonResponse
     {
         $results_data = $request->all();
-
         return $this->importService->importResult($results_data);
     }
 }

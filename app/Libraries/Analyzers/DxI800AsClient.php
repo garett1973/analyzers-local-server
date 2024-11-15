@@ -6,12 +6,10 @@ use App\Enums\HexCodes;
 use App\Http\Services\Interfaces\ResultServiceInterface;
 use App\Models\Analyte;
 use App\Models\Order;
-use App\Models\Result;
-use App\Models\Test;
 use Exception;
 use Illuminate\Support\Facades\Log;
 
-class SysmexAsClient
+class DxI800AsClient
 {
     public const ACK = HexCodes::ACK->value;
     public const NAK = HexCodes::NAK->value;
@@ -22,7 +20,7 @@ class SysmexAsClient
     public const CR = HexCodes::CR->value;
     public const LF = HexCodes::LF->value;
 
-    private static ?SysmexAsClient $instance = null;
+    private static ?DxI800AsClient $instance = null;
     private $server_socket;
     private $client_socket;
     private bool $receiving = true;
@@ -47,10 +45,10 @@ class SysmexAsClient
         }
     }
 
-    public static function getInstance(ResultServiceInterface $resultService): SysmexAsClient
+    public static function getInstance(ResultServiceInterface $resultService): DxI800AsClient
     {
         if (self::$instance === null) {
-            self::$instance = new SysmexAsClient($resultService);
+            self::$instance = new DxI800AsClient($resultService);
         }
         return self::$instance;
     }
@@ -68,8 +66,11 @@ class SysmexAsClient
 
     public function start(): bool
     {
-        $ip = '192.168.1.112';
-        $port = 6670;
+//        $ip = '192.168.1.112';
+//        $port = 6670;
+
+        $ip = '192.168.0.111';
+        $port = 12000;
 
         if (!$this->bindSocket($ip, $port) || !$this->listenOnSocket()) {
             return false;
@@ -126,8 +127,8 @@ class SysmexAsClient
             while ($this->receiving) {
                 $inc = @socket_read($this->client_socket, 1024);
                 echo "Received: $inc\n";
-                LOG::channel('sysmex_log')->info(" -> Received: $inc");
-                Log::channel('sysmex_log')->info(" -> Received in hex: " . bin2hex($inc));
+                LOG::channel('dxi800_test_log')->info(" -> Received: $inc");
+                Log::channel('dxi800_test_log')->info(" -> Received in hex: " . bin2hex($inc));
                 if ($inc === false) {
                     echo "Socket read failed: " . socket_strerror(socket_last_error($this->client_socket)) . "\n";
                     $this->handleClientDisconnection();
@@ -154,7 +155,7 @@ class SysmexAsClient
 
     private function reconnect(): void
     {
-        Log::channel('sysmex_log')->error(' -> Waiting for client to reconnect ...');
+        Log::channel('dxi800_test_log')->error(' -> Waiting for client to reconnect ...');
         echo "Waiting for client to reconnect...\n";
         socket_close($this->client_socket);
         $this->acceptClientConnection();
@@ -265,7 +266,7 @@ class SysmexAsClient
 
     private function logEvent(string $message): void
     {
-        Log::channel('sysmex_log')->info(" -> $message");
+        Log::channel('dxi800_test_log')->info(" -> $message");
         echo "$message\n";
     }
 
@@ -293,31 +294,26 @@ class SysmexAsClient
     {
         $this->logAndProcessMessage('Order', $inc);
         $inc = $this->cleanMessage($inc);
-        $this->barcode = preg_replace('/[^0-9]/', '', explode('^', explode('|', $inc)[3])[2]);
+        $this->barcode = preg_replace('/[^0-9]/', '', explode('|', $inc)[2]);
         echo "Barcode from order string in results: $this->barcode\n";
     }
 
     private function handleOrderRequest(string $inc): void
     {
-        LOG::channel('sysmex_log')->info(' -> Processing order request');
+        LOG::channel('dxi800_test_log')->info(' -> Processing order request');
         $this->order_requested = true;
 
         $this->logAndProcessMessage('Order request', $inc);
         $inc = $this->cleanMessage($inc);
-//        $this->barcode = preg_replace('/[^0-9]/', '', explode('^', explode('|', $inc)[2])[2]);
-
-        $barcodeSegment = explode('|', $inc)[2];
-        $barcodePart = explode('^', $barcodeSegment)[2];
-
-        $this->barcode = preg_replace('/[^0-9]/', '', $barcodePart);
+        $this->barcode = preg_replace('/[^0-9]/', '', explode('|', $inc)[2]);
 
         echo "Barcode from request string in order request: $this->barcode\n";
-        LOG::channel('sysmex_log')->info(" -> Barcode in order request: $this->barcode");
+        LOG::channel('dxi800_test_log')->info(" -> Barcode in order request: $this->barcode");
 
         $this->order_record = $this->getOrderString();
         $this->order_found = !empty($this->order_record);
         echo $this->order_found ? "Order string: $this->order_record\n" : "Order not found\n";
-        LOG::channel('sysmex_log')->info($this->order_found ? " -> Order string: $this->order_record" : ' -> Order not found');
+        LOG::channel('dxi800_test_log')->info($this->order_found ? " -> Order string: $this->order_record" : ' -> Order not found');
     }
 
     private function handleComment(string $inc): void
@@ -332,9 +328,9 @@ class SysmexAsClient
 
     private function logAndProcessMessage(string $type, string $inc): void
     {
-        Log::channel('sysmex_log')->info(" -> $type received: $inc");
+        Log::channel('dxi800_test_log')->info(" -> $type received: $inc");
         echo "$type received: $inc\n";
-        LOG::channel('sysmex_log')->info(" -> $type received in hex: " . bin2hex($inc));
+        LOG::channel('dxi800_test_log')->info(" -> $type received in hex: " . bin2hex($inc));
         echo "$type received in hex: " . bin2hex($inc) . "\n";
         $this->sendACK();
     }
@@ -383,7 +379,6 @@ class SysmexAsClient
         if (!$order) {
             return null;
         }
-
         return $order->order_record ?? null;
     }
 
@@ -402,9 +397,10 @@ class SysmexAsClient
     private function extractResultData(string $inc): array
     {
         $data = explode('|', $inc);
-        $analyte_name = explode('^', ltrim($data[2], "^"))[0];
+        $analyte_name = explode('^', $data[2])[3];
         return [$analyte_name, $data[3], $data[4]];
     }
+
 
     private function logAndRespond(string $logMessage, string $responseType): void
     {
@@ -481,7 +477,7 @@ class SysmexAsClient
     private function cleanMessage(string $inc): string
     {
         $inc = bin2hex($inc);
-        return hex2bin(substr(substr($inc, 2), 0, -10));
+        return hex2bin(substr(substr($inc, 2), 0, -12));
     }
 
     private function saveResult(string $inc): bool
@@ -505,7 +501,7 @@ class SysmexAsClient
 
     private function logMessage(string $type, string $message): void
     {
-        Log::channel('sysmex_log')->info(" -> $type: $message");
+        Log::channel('dxi800_test_log')->info(" -> $type: $message");
         echo "$type: $message\n";
     }
 

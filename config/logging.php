@@ -198,5 +198,17 @@ return [
             'path' => storage_path('logs/au680_test.log'),
             'level' => 'debug',
         ],
+
+        'dxi800_log' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/dxi800.log'),
+            'level' => 'debug',
+        ],
+
+        'dxi800_test_log' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/dxi800_test.log'),
+            'level' => 'debug',
+        ],
     ],
 ];
